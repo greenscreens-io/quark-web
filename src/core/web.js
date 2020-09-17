@@ -15,7 +15,6 @@ class WebChannel {
 
 		let me = this;
 		let Generator = engine.Generator;
-		let Security = engine.Security;
 
 		let data = await me.getAPI(engine.apiURL);
 		await engine.registerAPI(data);
@@ -110,7 +109,7 @@ class WebChannel {
 		let url = engine.serviceURL;
 
 		let hasArgs = Array.isArray(req.data) && req.data.length > 0;
-		let shouldEncrypt = Security.isActive() && hasArgs;
+		let shouldEncrypt = Security.isActive && hasArgs;
 		let data = req;
 
 		// encrypt if supported

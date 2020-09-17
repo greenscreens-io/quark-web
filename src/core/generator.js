@@ -7,200 +7,219 @@
  * Used to call remote services.
  * All Direct functions linked to defiend namespace
  */
- class Generator extends Events {
+class Generator extends Events {
 
 	constructor() {
 		super();
 		this._model = {};
 	}
 
- 	/**
- 	 * Return generted API structure and callers
- 	 */
- 	get api() {
- 		return this._model;
- 	}
+	/**
+	 * Return generted API structure and callers
+	 */
+	get api() {
+		return this._model;
+	}
 
- 	/**
- 	* Disconnect generator from API callers
- 	*/
- 	stop() {
- 		this.off('call');
- 		this.off('api');
- 	}
+	/**
+	 * Disconnect generator from API callers
+	 */
+	stop() {
 
- 	/**
- 	 * Build JS object with callable functions that maps to Java side methods
- 	 * Data is retrieved from API service
- 	 *
- 	 * @param {String} url || api object
- 	 * 		  URL Address for API service definitions
- 	 */
- 	build(o) {
- 		let data = o ? o.api || o : null;
- 		if (!data) return data;
- 		this._buildAPI(data);
- 		return data;
- 	}
+		let me = this;
+		me.removeAllListeners('call');
+		me.removeAllListeners('api');
 
- 	/**
- 	 * From API tree generate namespace tree and
- 	 * links generated functions to WebScoket api calls
- 	 *
- 	 * @param {Object} cfg
- 	 * 		Alternative definition to API
- 	 */
- 	_buildAPI(cfg) {
+		let root = typeof global === 'undefined' ? self : global;
+		Object.keys(me._model).forEach(v => root[v] = null);
+		this._model = {};
+	}
 
- 		let me = this;
+	/**
+	 * Build JS object with callable functions that maps to Java side methods
+	 * Data is retrieved from API service
+	 *
+	 * @param {String} url || api object
+	 * 		  URL Address for API service definitions
+	 */
+	build(o) {
 
- 		if (Array.isArray(cfg)) {
- 			cfg.every(v => {
- 				me._buildInstance(v);
- 				return true;
- 			});
- 		} else {
- 			me._buildInstance(cfg);
- 		}
+		let me = this;
+		let data = o ? o.api || o : null;
 
- 	}
+		if (!data) return data;
+		me._buildAPI(data);
 
- 	/**
- 	 * Build from single definition
- 	 *
- 	 * @param {Object} api
- 	 * 		  Java Class/Method definition
- 	 */
- 	_buildInstance(api) {
+		// attach to global
+		let root = typeof global === 'undefined' ? self : global;
+		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
 
- 		let me = this;
- 		let tree = null;
- 		let action = null;
+		return data;
+	}
 
- 		tree = me._buildNamespace(api.namespace);
+	/**
+	 * From API tree generate namespace tree and
+	 * links generated functions to WebScoket api calls
+	 *
+	 * @param {Object} cfg
+	 * 		Alternative definition to API
+	 */
+	_buildAPI(cfg) {
 
- 		if (!tree[api.action]) {
- 			tree[api.action] = {};
- 		}
- 		action = tree[api.action];
+		let me = this;
 
- 		api.methods.every(v => {
- 			me._buildMethod(api.namespace, api.action, action, v);
- 			return true;
- 		});
- 	}
+		if (Array.isArray(cfg)) {
+			cfg.every(v => {
+				me._buildInstance(v);
+				return true;
+			});
+		} else {
+			me._buildInstance(cfg);
+		}
 
- 	/**
- 	 * Generate namespace object structure from string version
- 	 *
- 	 * @param  {String} namespace
- 	 * 			Tree structure delimited with dots
- 	 *
- 	 * @return {Object}
- 	 * 			Object tree structure
- 	 */
- 	_buildNamespace(namespace) {
+	}
 
- 		let me = this;
- 		let tmp = null;
+	/**
+	 * Build from single definition
+	 *
+	 * @param {Object} api
+	 * 		  Java Class/Method definition
+	 */
+	_buildInstance(api) {
 
- 		namespace.split('.').every(v => {
+		let me = this;
+		let tree = null;
+		let action = null;
 
- 			if (!tmp) {
- 				if (!me._model[v]) me._model[v] = {};
- 				tmp = me._model[v];
- 			} else {
- 				if (!tmp[v]) tmp[v] = {};
- 				// Object.freeze(tmp);
- 				tmp = tmp[v];
- 			}
+		tree = me._buildNamespace(api.namespace);
 
- 			return true;
- 		});
+		if (!tree[api.action]) {
+			tree[api.action] = {};
+		}
+		action = tree[api.action];
 
- 		return tmp;
- 	}
+		api.methods.every(v => {
+			me._buildMethod(api.namespace, api.action, action, v);
+			return true;
+		});
+	}
 
- 	/**
- 	 * Build instance methods
- 	 *
- 	 * @param {String} namespace
- 	 * @param {String} action
- 	 * @param {String} instance
- 	 * @param {Array} api
- 	 */
- 	_buildMethod(namespace, action, instance, api) {
+	/**
+	 * Generate namespace object structure from string version
+	 *
+	 * @param  {String} namespace
+	 * 			Tree structure delimited with dots
+	 *
+	 * @return {Object}
+	 * 			Object tree structure
+	 */
+	_buildNamespace(namespace) {
 
- 		let enc = api.encrypt === false ? false : true;
- 		let cfg = {
- 			n: namespace,
- 			c: action,
- 			m: api.name,
- 			l: api.len,
- 			e: enc
- 		};
+		let me = this;
+		let tmp = null;
 
- 		instance[api.name] = this._apiFn(cfg);
- 		// Object.freeze(instance[api.name]);
- 	}
+		namespace.split('.').every(v => {
 
- 	/**
- 	 * Generic function used to attach for generated API
- 	 *
- 	 * @param {Array} params List of arguments from caller
- 	 */
- 	_apiFn(params) {
+			if (!tmp) {
+				if (!me._model[v]) me._model[v] = {};
+				tmp = me._model[v];
+			} else {
+				if (!tmp[v]) tmp[v] = {};
+				// Object.freeze(tmp);
+				tmp = tmp[v];
+			}
 
- 		var me = this;
- 		var prop = params;
+			return true;
+		});
 
- 		function fn() {
+		return tmp;
+	}
 
- 			let args, req, promise = null;
+	/**
+	 * Build instance methods
+	 *
+	 * @param {String} namespace
+	 * @param {String} action
+	 * @param {String} instance
+	 * @param {Array} api
+	 */
+	_buildMethod(namespace, action, instance, api) {
 
- 			args = Array.prototype.slice.call(arguments);
+		let enc = api.encrypt === false ? false : true;
+		let cfg = {
+			n: namespace,
+			c: action,
+			m: api.name,
+			l: api.len,
+			e: enc
+		};
 
- 			req = {
- 				"namespace": prop.n,
- 				"action": prop.c,
- 				"method": prop.m,
- 				"e": prop.e,
- 				"data": args
- 			};
+		instance[api.name] = this._apiFn(cfg);
+		// Object.freeze(instance[api.name]);
+	}
 
- 			promise = new Promise((resolve, reject) => {
- 				me.emit('call', req, (err, obj) => {
- 					me._onResponse(err, obj, prop, resolve, reject);
- 				});
- 			});
+	/**
+	 * Generic function used to attach for generated API
+	 *
+	 * @param {Array} params List of arguments from caller
+	 */
+	_apiFn(params) {
 
- 			return promise;
- 		}
+		let me = this;
+		let prop = params;
 
- 		return fn;
- 	}
+		function fn() {
 
- 	/**
- 	 * Process remote response
- 	 */
- 	_onResponse(err, obj, prop, response, reject) {
+			let args, req, promise = null;
 
- 		if (err) {
- 			reject(err);
- 			return;
- 		}
+			args = Array.prototype.slice.call(arguments);
 
- 		let sts = (prop.c === obj.action) &&
- 			(prop.m === obj.method) &&
- 			obj.result &&
- 			obj.result.success;
+			req = {
+				"namespace": prop.n,
+				"action": prop.c,
+				"method": prop.m,
+				"e": prop.e,
+				"data": args
+			};
 
- 		if (sts) {
- 			response(obj.result);
- 		} else {
- 			reject(obj.result || obj);
- 		}
+			promise = new Promise((resolve, reject) => {
+				me.emit('call', req, (err, obj) => {
+					me._onResponse(err, obj, prop, resolve, reject);
+				});
+			});
 
- 	};
+			return promise;
+		}
 
- }
+		return fn;
+	}
+
+	/**
+	 * Process remote response
+	 */
+	_onResponse(err, obj, prop, response, reject) {
+
+		if (err) {
+			reject(err);
+			return;
+		}
+
+		let sts = (prop.c === obj.action) &&
+			(prop.m === obj.method) &&
+			obj.result &&
+			obj.result.success;
+
+		if (sts) {
+			response(obj.result);
+		} else {
+			reject(obj.result || obj);
+		}
+
+	};
+
+	static async build(cfg) {
+		let generator = new Generator();
+		generator.build(cfg);
+		return generator;
+	}
+}

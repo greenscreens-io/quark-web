@@ -44,30 +44,30 @@ class Security {
 	 */
 	getRandom(size) {
 		let array = new Uint8Array(size);
-		window.crypto.getRandomValues(array);
+		crypto.getRandomValues(array);
 		return array;
 	}
 
 	/**
-	* Create AES key for data encryption
-	* @returns CryptoKey
-	*/
+	 * Create AES key for data encryption
+	 * @returns CryptoKey
+	 */
 	async generateAesKey() {
 		let type = {
 			name: "AES-CTR",
 			length: 128
 		};
 		let mode = ["encrypt", "decrypt"];
-		return window.crypto.subtle.generateKey(type, true, mode);
+		return crypto.subtle.generateKey(type, true, mode);
 	}
 
 	/**
-	* Extract CryptoKey into RAW bytes
-	* @param {CryptoKey} key
-	* @returns Uin8Array
-	*/
+	 * Extract CryptoKey into RAW bytes
+	 * @param {CryptoKey} key
+	 * @returns Uin8Array
+	 */
 	async exportAesKey(key) {
-		let buffer = await window.crypto.subtle.exportKey("raw", key);
+		let buffer = await crypto.subtle.exportKey("raw", key);
 		return new Uint8Array(buffer);
 	}
 
@@ -88,9 +88,9 @@ class Security {
 	async importRsaKey(key, type, mode) {
 
 		let binaryDerString = window.atob(key);
-		let binaryDer = str2ab(binaryDerString);
+		let binaryDer = this.str2ab(binaryDerString);
 
-		return window.crypto.subtle.importKey(
+		return crypto.subtle.importKey(
 			"spki",
 			binaryDer,
 			type,
@@ -114,7 +114,7 @@ class Security {
 	async verify(key, signature, challenge) {
 
 		let me = this;
-		let binSignature = str2ab(atob(signature));
+		let binSignature = me.str2ab(atob(signature));
 		let binChallenge = me.encoder.encode(challenge);
 
 		let type = {
@@ -124,7 +124,7 @@ class Security {
 			}
 		};
 
-		return window.crypto.subtle.verify(
+		return crypto.subtle.verify(
 			type,
 			key,
 			binSignature,
@@ -147,7 +147,7 @@ class Security {
 			encoded = me.encoder.encode(data);
 		}
 
-		return window.crypto.subtle.encrypt(
+		return crypto.subtle.encrypt(
 			"RSA-OAEP",
 			me.encKEY,
 			encoded
@@ -166,7 +166,7 @@ class Security {
 			length: 128
 		};
 
-		return window.crypto.subtle.encrypt(type, key, encoded);
+		return crypto.subtle.encrypt(type, key, encoded);
 	}
 
 	/**
@@ -174,8 +174,9 @@ class Security {
 	 */
 	async decryptAesMessage(key, iv, data) {
 
-		let databin = hex2ab(data);
-		let ivbin = hex2ab(iv);
+		let me = this;
+		let databin = me.hex2ab(data);
+		let ivbin = me.hex2ab(iv);
 
 		let counter = new Uint8Array(ivbin);
 		let dataArray = new Uint8Array(databin);
@@ -185,7 +186,7 @@ class Security {
 			length: 128
 		};
 
-		return window.crypto.subtle.decrypt(type, key, dataArray);
+		return crypto.subtle.decrypt(type, key, dataArray);
 	}
 
 	get isValid() {
@@ -194,12 +195,8 @@ class Security {
 	}
 
 	get isAvailable() {
-		return window.crypto.subtle != null;
+		return crypto.subtle != null;
 	}
-
-	/********************************************************************/
-	/*                   P U B L I C  F U N C T I O N S                 */
-	/********************************************************************/
 
 	/**
 	 * Initialize encryption and verification keys
@@ -218,20 +215,20 @@ class Security {
 
 		me.VERSION++;
 
-		me.encKEY = await importRsaKey(cfg.keyEnc, {
+		me.encKEY = await me.importRsaKey(cfg.keyEnc, {
 			name: 'RSA-OAEP',
 			hash: 'SHA-256'
 		}, 'encrypt');
 
-		me.aesKEY = await generateAesKey();
-		me.exportedAES = await exportAesKey(aesKEY);
+		me.aesKEY = await me.generateAesKey();
+		me.exportedAES = await me.exportAesKey(me.aesKEY);
 
-		let verKey = await importRsaKey(cfg.keyVer, {
+		let verKey = await me.importRsaKey(cfg.keyVer, {
 			name: 'ECDSA',
 			namedCurve: "P-384"
 		}, 'verify');
 
-		let status = await verify(verKey, cfg.signature, getChallenge(cfg || {}));
+		let status = await me.verify(verKey, cfg.signature, me.getChallenge(cfg || {}));
 
 		if (!status) {
 			me.encKEY = null;
@@ -252,14 +249,14 @@ class Security {
 	async encrypt(data, bin) {
 
 		let me = this;
-		let iv = getRandom(16);
+		let iv = me.getRandom(16);
 		let key = new Uint8Array(iv.length + me.exportedAES.length);
 
 		key.set(iv);
 		key.set(me.exportedAES, iv.length);
 
-		let encryptedKey = await encryptRSA(key);
-		let encryptedData = await encryptAesMessage(me.aesKEY, iv, data);
+		let encryptedKey = await me.encryptRSA(key);
+		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, data);
 
 		if (bin === true) {
 			return {
@@ -269,8 +266,8 @@ class Security {
 		}
 
 		return {
-			d: buf2hex(encryptedData),
-			k: buf2hex(encryptedKey)
+			d: me.buf2hex(encryptedData),
+			k: me.buf2hex(encryptedKey)
 		};
 
 	}
@@ -290,9 +287,8 @@ class Security {
 		let iv = cfg.iv;
 		let data = cfg.d;
 
-		let message = await decryptAesMessage(me.aesKEY, iv, data);
+		let message = await me.decryptAesMessage(me.aesKEY, iv, data);
 
-		//var str = stringFromUTF8Array(new Uint8Array(message));
 		let str = me.decoder.decode(message);
 		let obj = JSON.parse(str);
 
@@ -303,4 +299,61 @@ class Security {
 		return obj;
 	}
 
+
+	/**
+	 * Convert hex string to int array
+	 *
+	 * @param str
+	 * @returns
+	 */
+	hex2ab(str) {
+
+		let a = [];
+
+		for (let i = 0; i < str.length; i += 2) {
+			a.push(parseInt("0x" + str.substr(i, 2), 16));
+		}
+
+		return a;
+	}
+
+	/**
+	 * Convert string to int array
+	 *
+	 * @param
+	 * 	 str - string to convert
+	 *
+	 * @returns
+	 * 	  ArrayBuffer of ints
+	 */
+	str2ab(str) {
+
+		let buf = new ArrayBuffer(str.length);
+		let bufView = new Uint8Array(buf);
+
+		for (let i = 0, strLen = str.length; i < strLen; i++) {
+			bufView[i] = str.charCodeAt(i);
+		}
+
+		return buf;
+	}
+
+	/**
+	 * Convert array of ints into hex string
+	 *
+	 * @param
+	 * 	buffer - buffer is an ArrayBuffer
+	 *
+	 * @returns
+	 * 	string in hex format
+	 */
+	buf2hex(buffer) {
+		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+	}
+
+	static async init(cfg) {
+		let security = new Security();
+		await security.init(cfg);
+		return security;
+	}
 };

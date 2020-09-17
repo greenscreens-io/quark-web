@@ -1,5 +1,4 @@
-/* Quark Engine v1.0.1 (c) Green Screens Ltd. */
-
+/* Quark Engine v2.0.0 (c) Green Screens Ltd. */
 
 /*
 class TestEvents extends EventES6 {
@@ -67,8 +66,7 @@ class Events {
 	off(label, callback = true) {
 		if (callback === true) {
 			// remove listeners for all callbackfunctions
-			this.listeners.delete(label);
-			this.onceListeners.delete(label);
+			this.removeAllListeners(label);
 		} else {
 			// remove listeners only with match callbackfunctions
 			let _off = (inListener) => {
@@ -80,6 +78,11 @@ class Events {
 			_off(this.listeners);
 			_off(this.onceListeners);
 		}
+	}
+
+	removeAllListeners(label) {
+		this.listeners.delete(label);
+		this.onceListeners.delete(label);
 	}
 
 	// trigger the event with the label
@@ -152,7 +155,7 @@ class Queue extends Map {
 	process(obj) {
 		let me = this;
 		if (Array.isArray(obj)) {
-			obj.forEach( me.execute.bind(me) );
+			obj.forEach(me.execute.bind(me));
 		} else {
 			me.execute(obj);
 		}
@@ -182,103 +185,6 @@ class Queue extends Map {
 		me.reset();
 
 	};
-}
-
-/*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
- */
-
-
-/**
- * Convert hex string to int array
- *
- * @param str
- * @returns
- */
-function hex2ab(str) {
-
-	let a = [];
-
-	for (let i = 0; i < str.length; i += 2) {
-		a.push(parseInt("0x" + str.substr(i, 2), 16));
-	}
-
-	return a;
-}
-
-/**
- * Convert string to int array
- *
- * @param
- * 	 str - string to convert
- *
- * @returns
- * 	  ArrayBuffer of ints
- */
-function str2ab(str) {
-
-	let buf = new ArrayBuffer(str.length);
-	let bufView = new Uint8Array(buf);
-
-	for (let i = 0, strLen = str.length; i < strLen; i++) {
-		bufView[i] = str.charCodeAt(i);
-	}
-
-	return buf;
-}
-
-/**
- * Convert array of ints into hex string
- *
- * @param
- * 	buffer - buffer is an ArrayBuffer
- *
- * @returns
- * 	string in hex format
- */
-function buf2hex(buffer) {
-	return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-}
-
-/**
- * Convert int array (utf8 encoded) to string
- *
- * @param data
- * @returns
- */
-function stringFromUTF8Array(data) {
-
-	let extraByteMap = [1, 1, 1, 1, 2, 2, 3, 0];
-	let count = data.length;
-	let str = "";
-
-	for (let index = 0; index < count;) {
-
-		let ch = data[index++];
-		if (ch & 0x80) {
-
-			let extra = extraByteMap[(ch >> 3) & 0x07];
-			if (!(ch & 0x40) || !extra || ((index + extra) > count)) {
-				return null;
-			}
-
-			ch = ch & (0x3F >> extra);
-			for (; extra > 0; extra -= 1) {
-
-				let chx = data[index++];
-				if ((chx & 0xC0) != 0x80) {
-					return null;
-				}
-
-				ch = (ch << 6) | (chx & 0x3F);
-			}
-
-		}
-
-		str += String.fromCharCode(ch);
-	}
-
-	return str;
 }
 
 /*
@@ -362,30 +268,30 @@ class Security {
 	 */
 	getRandom(size) {
 		let array = new Uint8Array(size);
-		window.crypto.getRandomValues(array);
+		crypto.getRandomValues(array);
 		return array;
 	}
 
 	/**
-	* Create AES key for data encryption
-	* @returns CryptoKey
-	*/
+	 * Create AES key for data encryption
+	 * @returns CryptoKey
+	 */
 	async generateAesKey() {
 		let type = {
 			name: "AES-CTR",
 			length: 128
 		};
 		let mode = ["encrypt", "decrypt"];
-		return window.crypto.subtle.generateKey(type, true, mode);
+		return crypto.subtle.generateKey(type, true, mode);
 	}
 
 	/**
-	* Extract CryptoKey into RAW bytes
-	* @param {CryptoKey} key
-	* @returns Uin8Array
-	*/
+	 * Extract CryptoKey into RAW bytes
+	 * @param {CryptoKey} key
+	 * @returns Uin8Array
+	 */
 	async exportAesKey(key) {
-		let buffer = await window.crypto.subtle.exportKey("raw", key);
+		let buffer = await crypto.subtle.exportKey("raw", key);
 		return new Uint8Array(buffer);
 	}
 
@@ -406,9 +312,9 @@ class Security {
 	async importRsaKey(key, type, mode) {
 
 		let binaryDerString = window.atob(key);
-		let binaryDer = str2ab(binaryDerString);
+		let binaryDer = this.str2ab(binaryDerString);
 
-		return window.crypto.subtle.importKey(
+		return crypto.subtle.importKey(
 			"spki",
 			binaryDer,
 			type,
@@ -432,7 +338,7 @@ class Security {
 	async verify(key, signature, challenge) {
 
 		let me = this;
-		let binSignature = str2ab(atob(signature));
+		let binSignature = me.str2ab(atob(signature));
 		let binChallenge = me.encoder.encode(challenge);
 
 		let type = {
@@ -442,7 +348,7 @@ class Security {
 			}
 		};
 
-		return window.crypto.subtle.verify(
+		return crypto.subtle.verify(
 			type,
 			key,
 			binSignature,
@@ -465,7 +371,7 @@ class Security {
 			encoded = me.encoder.encode(data);
 		}
 
-		return window.crypto.subtle.encrypt(
+		return crypto.subtle.encrypt(
 			"RSA-OAEP",
 			me.encKEY,
 			encoded
@@ -484,7 +390,7 @@ class Security {
 			length: 128
 		};
 
-		return window.crypto.subtle.encrypt(type, key, encoded);
+		return crypto.subtle.encrypt(type, key, encoded);
 	}
 
 	/**
@@ -492,8 +398,9 @@ class Security {
 	 */
 	async decryptAesMessage(key, iv, data) {
 
-		let databin = hex2ab(data);
-		let ivbin = hex2ab(iv);
+		let me = this;
+		let databin = me.hex2ab(data);
+		let ivbin = me.hex2ab(iv);
 
 		let counter = new Uint8Array(ivbin);
 		let dataArray = new Uint8Array(databin);
@@ -503,7 +410,7 @@ class Security {
 			length: 128
 		};
 
-		return window.crypto.subtle.decrypt(type, key, dataArray);
+		return crypto.subtle.decrypt(type, key, dataArray);
 	}
 
 	get isValid() {
@@ -512,12 +419,8 @@ class Security {
 	}
 
 	get isAvailable() {
-		return window.crypto.subtle != null;
+		return crypto.subtle != null;
 	}
-
-	/********************************************************************/
-	/*                   P U B L I C  F U N C T I O N S                 */
-	/********************************************************************/
 
 	/**
 	 * Initialize encryption and verification keys
@@ -536,20 +439,20 @@ class Security {
 
 		me.VERSION++;
 
-		me.encKEY = await importRsaKey(cfg.keyEnc, {
+		me.encKEY = await me.importRsaKey(cfg.keyEnc, {
 			name: 'RSA-OAEP',
 			hash: 'SHA-256'
 		}, 'encrypt');
 
-		me.aesKEY = await generateAesKey();
-		me.exportedAES = await exportAesKey(aesKEY);
+		me.aesKEY = await me.generateAesKey();
+		me.exportedAES = await me.exportAesKey(me.aesKEY);
 
-		let verKey = await importRsaKey(cfg.keyVer, {
+		let verKey = await me.importRsaKey(cfg.keyVer, {
 			name: 'ECDSA',
 			namedCurve: "P-384"
 		}, 'verify');
 
-		let status = await verify(verKey, cfg.signature, getChallenge(cfg || {}));
+		let status = await me.verify(verKey, cfg.signature, me.getChallenge(cfg || {}));
 
 		if (!status) {
 			me.encKEY = null;
@@ -570,14 +473,14 @@ class Security {
 	async encrypt(data, bin) {
 
 		let me = this;
-		let iv = getRandom(16);
+		let iv = me.getRandom(16);
 		let key = new Uint8Array(iv.length + me.exportedAES.length);
 
 		key.set(iv);
 		key.set(me.exportedAES, iv.length);
 
-		let encryptedKey = await encryptRSA(key);
-		let encryptedData = await encryptAesMessage(me.aesKEY, iv, data);
+		let encryptedKey = await me.encryptRSA(key);
+		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, data);
 
 		if (bin === true) {
 			return {
@@ -587,8 +490,8 @@ class Security {
 		}
 
 		return {
-			d: buf2hex(encryptedData),
-			k: buf2hex(encryptedKey)
+			d: me.buf2hex(encryptedData),
+			k: me.buf2hex(encryptedKey)
 		};
 
 	}
@@ -608,9 +511,8 @@ class Security {
 		let iv = cfg.iv;
 		let data = cfg.d;
 
-		let message = await decryptAesMessage(me.aesKEY, iv, data);
+		let message = await me.decryptAesMessage(me.aesKEY, iv, data);
 
-		//var str = stringFromUTF8Array(new Uint8Array(message));
 		let str = me.decoder.decode(message);
 		let obj = JSON.parse(str);
 
@@ -621,6 +523,63 @@ class Security {
 		return obj;
 	}
 
+
+	/**
+	 * Convert hex string to int array
+	 *
+	 * @param str
+	 * @returns
+	 */
+	hex2ab(str) {
+
+		let a = [];
+
+		for (let i = 0; i < str.length; i += 2) {
+			a.push(parseInt("0x" + str.substr(i, 2), 16));
+		}
+
+		return a;
+	}
+
+	/**
+	 * Convert string to int array
+	 *
+	 * @param
+	 * 	 str - string to convert
+	 *
+	 * @returns
+	 * 	  ArrayBuffer of ints
+	 */
+	str2ab(str) {
+
+		let buf = new ArrayBuffer(str.length);
+		let bufView = new Uint8Array(buf);
+
+		for (let i = 0, strLen = str.length; i < strLen; i++) {
+			bufView[i] = str.charCodeAt(i);
+		}
+
+		return buf;
+	}
+
+	/**
+	 * Convert array of ints into hex string
+	 *
+	 * @param
+	 * 	buffer - buffer is an ArrayBuffer
+	 *
+	 * @returns
+	 * 	string in hex format
+	 */
+	buf2hex(buffer) {
+		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+	}
+
+	static async init(cfg) {
+		let security = new Security();
+		await security.init(cfg);
+		return security;
+	}
 };
 
 /*
@@ -632,203 +591,222 @@ class Security {
  * Used to call remote services.
  * All Direct functions linked to defiend namespace
  */
- class Generator extends Events {
+class Generator extends Events {
 
 	constructor() {
 		super();
 		this._model = {};
 	}
 
- 	/**
- 	 * Return generted API structure and callers
- 	 */
- 	get api() {
- 		return this._model;
- 	}
+	/**
+	 * Return generted API structure and callers
+	 */
+	get api() {
+		return this._model;
+	}
 
- 	/**
- 	* Disconnect generator from API callers
- 	*/
- 	stop() {
- 		this.off('call');
- 		this.off('api');
- 	}
+	/**
+	 * Disconnect generator from API callers
+	 */
+	stop() {
 
- 	/**
- 	 * Build JS object with callable functions that maps to Java side methods
- 	 * Data is retrieved from API service
- 	 *
- 	 * @param {String} url || api object
- 	 * 		  URL Address for API service definitions
- 	 */
- 	build(o) {
- 		let data = o ? o.api || o : null;
- 		if (!data) return data;
- 		this._buildAPI(data);
- 		return data;
- 	}
+		let me = this;
+		me.removeAllListeners('call');
+		me.removeAllListeners('api');
 
- 	/**
- 	 * From API tree generate namespace tree and
- 	 * links generated functions to WebScoket api calls
- 	 *
- 	 * @param {Object} cfg
- 	 * 		Alternative definition to API
- 	 */
- 	_buildAPI(cfg) {
+		let root = typeof global === 'undefined' ? self : global;
+		Object.keys(me._model).forEach(v => root[v] = null);
+		this._model = {};
+	}
 
- 		let me = this;
+	/**
+	 * Build JS object with callable functions that maps to Java side methods
+	 * Data is retrieved from API service
+	 *
+	 * @param {String} url || api object
+	 * 		  URL Address for API service definitions
+	 */
+	build(o) {
 
- 		if (Array.isArray(cfg)) {
- 			cfg.every(v => {
- 				me._buildInstance(v);
- 				return true;
- 			});
- 		} else {
- 			me._buildInstance(cfg);
- 		}
+		let me = this;
+		let data = o ? o.api || o : null;
 
- 	}
+		if (!data) return data;
+		me._buildAPI(data);
 
- 	/**
- 	 * Build from single definition
- 	 *
- 	 * @param {Object} api
- 	 * 		  Java Class/Method definition
- 	 */
- 	_buildInstance(api) {
+		// attach to global
+		let root = typeof global === 'undefined' ? self : global;
+		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
 
- 		let me = this;
- 		let tree = null;
- 		let action = null;
+		return data;
+	}
 
- 		tree = me._buildNamespace(api.namespace);
+	/**
+	 * From API tree generate namespace tree and
+	 * links generated functions to WebScoket api calls
+	 *
+	 * @param {Object} cfg
+	 * 		Alternative definition to API
+	 */
+	_buildAPI(cfg) {
 
- 		if (!tree[api.action]) {
- 			tree[api.action] = {};
- 		}
- 		action = tree[api.action];
+		let me = this;
 
- 		api.methods.every(v => {
- 			me._buildMethod(api.namespace, api.action, action, v);
- 			return true;
- 		});
- 	}
+		if (Array.isArray(cfg)) {
+			cfg.every(v => {
+				me._buildInstance(v);
+				return true;
+			});
+		} else {
+			me._buildInstance(cfg);
+		}
 
- 	/**
- 	 * Generate namespace object structure from string version
- 	 *
- 	 * @param  {String} namespace
- 	 * 			Tree structure delimited with dots
- 	 *
- 	 * @return {Object}
- 	 * 			Object tree structure
- 	 */
- 	_buildNamespace(namespace) {
+	}
 
- 		let me = this;
- 		let tmp = null;
+	/**
+	 * Build from single definition
+	 *
+	 * @param {Object} api
+	 * 		  Java Class/Method definition
+	 */
+	_buildInstance(api) {
 
- 		namespace.split('.').every(v => {
+		let me = this;
+		let tree = null;
+		let action = null;
 
- 			if (!tmp) {
- 				if (!me._model[v]) me._model[v] = {};
- 				tmp = me._model[v];
- 			} else {
- 				if (!tmp[v]) tmp[v] = {};
- 				// Object.freeze(tmp);
- 				tmp = tmp[v];
- 			}
+		tree = me._buildNamespace(api.namespace);
 
- 			return true;
- 		});
+		if (!tree[api.action]) {
+			tree[api.action] = {};
+		}
+		action = tree[api.action];
 
- 		return tmp;
- 	}
+		api.methods.every(v => {
+			me._buildMethod(api.namespace, api.action, action, v);
+			return true;
+		});
+	}
 
- 	/**
- 	 * Build instance methods
- 	 *
- 	 * @param {String} namespace
- 	 * @param {String} action
- 	 * @param {String} instance
- 	 * @param {Array} api
- 	 */
- 	_buildMethod(namespace, action, instance, api) {
+	/**
+	 * Generate namespace object structure from string version
+	 *
+	 * @param  {String} namespace
+	 * 			Tree structure delimited with dots
+	 *
+	 * @return {Object}
+	 * 			Object tree structure
+	 */
+	_buildNamespace(namespace) {
 
- 		let enc = api.encrypt === false ? false : true;
- 		let cfg = {
- 			n: namespace,
- 			c: action,
- 			m: api.name,
- 			l: api.len,
- 			e: enc
- 		};
+		let me = this;
+		let tmp = null;
 
- 		instance[api.name] = this._apiFn(cfg);
- 		// Object.freeze(instance[api.name]);
- 	}
+		namespace.split('.').every(v => {
 
- 	/**
- 	 * Generic function used to attach for generated API
- 	 *
- 	 * @param {Array} params List of arguments from caller
- 	 */
- 	_apiFn(params) {
+			if (!tmp) {
+				if (!me._model[v]) me._model[v] = {};
+				tmp = me._model[v];
+			} else {
+				if (!tmp[v]) tmp[v] = {};
+				// Object.freeze(tmp);
+				tmp = tmp[v];
+			}
 
- 		var me = this;
- 		var prop = params;
+			return true;
+		});
 
- 		function fn() {
+		return tmp;
+	}
 
- 			let args, req, promise = null;
+	/**
+	 * Build instance methods
+	 *
+	 * @param {String} namespace
+	 * @param {String} action
+	 * @param {String} instance
+	 * @param {Array} api
+	 */
+	_buildMethod(namespace, action, instance, api) {
 
- 			args = Array.prototype.slice.call(arguments);
+		let enc = api.encrypt === false ? false : true;
+		let cfg = {
+			n: namespace,
+			c: action,
+			m: api.name,
+			l: api.len,
+			e: enc
+		};
 
- 			req = {
- 				"namespace": prop.n,
- 				"action": prop.c,
- 				"method": prop.m,
- 				"e": prop.e,
- 				"data": args
- 			};
+		instance[api.name] = this._apiFn(cfg);
+		// Object.freeze(instance[api.name]);
+	}
 
- 			promise = new Promise((resolve, reject) => {
- 				me.emit('call', req, (err, obj) => {
- 					me._onResponse(err, obj, prop, resolve, reject);
- 				});
- 			});
+	/**
+	 * Generic function used to attach for generated API
+	 *
+	 * @param {Array} params List of arguments from caller
+	 */
+	_apiFn(params) {
 
- 			return promise;
- 		}
+		let me = this;
+		let prop = params;
 
- 		return fn;
- 	}
+		function fn() {
 
- 	/**
- 	 * Process remote response
- 	 */
- 	_onResponse(err, obj, prop, response, reject) {
+			let args, req, promise = null;
 
- 		if (err) {
- 			reject(err);
- 			return;
- 		}
+			args = Array.prototype.slice.call(arguments);
 
- 		let sts = (prop.c === obj.action) &&
- 			(prop.m === obj.method) &&
- 			obj.result &&
- 			obj.result.success;
+			req = {
+				"namespace": prop.n,
+				"action": prop.c,
+				"method": prop.m,
+				"e": prop.e,
+				"data": args
+			};
 
- 		if (sts) {
- 			response(obj.result);
- 		} else {
- 			reject(obj.result || obj);
- 		}
+			promise = new Promise((resolve, reject) => {
+				me.emit('call', req, (err, obj) => {
+					me._onResponse(err, obj, prop, resolve, reject);
+				});
+			});
 
- 	};
+			return promise;
+		}
 
- }
+		return fn;
+	}
+
+	/**
+	 * Process remote response
+	 */
+	_onResponse(err, obj, prop, response, reject) {
+
+		if (err) {
+			reject(err);
+			return;
+		}
+
+		let sts = (prop.c === obj.action) &&
+			(prop.m === obj.method) &&
+			obj.result &&
+			obj.result.success;
+
+		if (sts) {
+			response(obj.result);
+		} else {
+			reject(obj.result || obj);
+		}
+
+	};
+
+	static async build(cfg) {
+		let generator = new Generator();
+		generator.build(cfg);
+		return generator;
+	}
+}
 
 /*
  * Copyright (C) 2015, 2020  Green Screens Ltd.
@@ -847,7 +825,6 @@ class WebChannel {
 
 		let me = this;
 		let Generator = engine.Generator;
-		let Security = engine.Security;
 
 		let data = await me.getAPI(engine.apiURL);
 		await engine.registerAPI(data);
@@ -942,7 +919,7 @@ class WebChannel {
 		let url = engine.serviceURL;
 
 		let hasArgs = Array.isArray(req.data) && req.data.length > 0;
-		let shouldEncrypt = Security.isActive() && hasArgs;
+		let shouldEncrypt = Security.isActive && hasArgs;
 		let data = req;
 
 		// encrypt if supported
@@ -1017,6 +994,55 @@ class SocketChannel {
 		me.webSocket = null;
 		me.engine = null;
 		return true;
+	}
+
+	/**
+	 * Check if data can be encrypted
+	 *
+	 * @param {Object} req
+	 */
+	canEncrypt(req) {
+		let hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
+		return this.engine.Security.isActive && hasArgs;
+	}
+
+	/**
+	 * Prepare remtoe call, encrypt if avaialble
+	 *
+	 * @param {Object} req
+	 *         Data to send (optionaly encrypt)
+	 */
+	async onCall(req, callback) {
+
+		let me = this;
+		let msg = null;
+		let enc = null;
+		let data = null;
+
+		let isEncrypt = me.canEncrypt(req);
+
+		me.queue.updateRequest(req, callback);
+
+		// encrypt if supported
+		if (isEncrypt) {
+			enc = await me.engine.Security.encrypt(req.data);
+			req.data = [enc];
+		}
+
+		data = {
+			cmd: isEncrypt ? 'enc' : 'data',
+			type: 'ws',
+			data: [req]
+		};
+
+		msg = JSON.stringify(data);
+
+		if (!Streams.isAvailable()) {
+			return me.webSocket.send(msg);
+		}
+
+		msg = await Streams.compress(msg);
+		me.webSocket.send(msg);
 	}
 
 	async _startSocket(resolve, reject) {
@@ -1154,35 +1180,31 @@ class SocketChannel {
  */
 
 /**
- * Expose `Emitter`.
- */
-
-/**
  * Web and WebSocket API engine
  * Used to initialize remote API and remote services.
  */
- const ERROR_MESSAGE = 'Invalid definition for Engine Remote Service';
- const ERROR_API_UNDEFIEND = 'API Url not defined!';
- const ERROR_SVC_UNDEFIEND = 'Service Url not defined!';
+const ERROR_MESSAGE = 'Invalid definition for Engine Remote Service';
+const ERROR_API_UNDEFIEND = 'API Url not defined!';
+const ERROR_SVC_UNDEFIEND = 'Service Url not defined!';
 
- /**
-  * Main class for Quark Engine Client
-  */
- class Engine {
+/**
+ * Main class for Quark Engine Client
+ */
+class Engine {
 
- 	constructor(cfg) {
+	constructor(cfg) {
 
- 		cfg = cfg || {};
+		cfg = cfg || {};
 
- 		if (!cfg.api) {
- 			throw new Error(ERROR_API_UNDEFIEND);
- 		}
+		if (!cfg.api) {
+			throw new Error(ERROR_API_UNDEFIEND);
+		}
 
- 		if (!cfg.service) {
- 			throw new Error(ERROR_SVC_UNDEFIEND);
- 		}
+		if (!cfg.service) {
+			throw new Error(ERROR_SVC_UNDEFIEND);
+		}
 
- 		let me = this;
+		let me = this;
 
 		me.cfg = null;
 		me.isWSAPI = false;
@@ -1194,105 +1216,110 @@ class SocketChannel {
 		me.WebChannel = null;
 		me.SockChannel = null;
 
- 		me.cfg = cfg;
- 		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
+		me.cfg = cfg;
+		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
 
- 		me.isWebChannel = cfg.service.indexOf('http') === 0;
- 		me.isSockChannel = cfg.service.indexOf('ws') === 0;
+		me.isWebChannel = cfg.service.indexOf('http') === 0;
+		me.isSockChannel = cfg.service.indexOf('ws') === 0;
 
- 		if ((me.isWebChannel || me.isSockChannel) === false ) {
- 			throw new Error(ERROR_MESSAGE);
- 		}
+		if ((me.isWebChannel || me.isSockChannel) === false) {
+			throw new Error(ERROR_MESSAGE);
+		}
 
- 	}
+	}
 
- 	/*
- 	 * Initialize engine, throws error,
- 	 */
- 	async init() {
+	/*
+	 * Initialize engine, throws error,
+	 */
+	async init() {
 
- 		let me = this;
- 		if (me.isActive) return;
+		let me = this;
+		if (me.isActive) return;
 
- 		me.Security = new Security();
- 		me.Generator = new Generator();
+		me.Security = new Security();
+		me.Generator = new Generator();
 
- 		if (me.isWebChannel) {
- 			me.WebChannel = new WebChannel();
- 			await me.WebChannel.init(me);
- 		}
+		if (me.isWebChannel || me.isWSAPI == false) {
+			me.WebChannel = new WebChannel();
+			await me.WebChannel.init(me);
+		}
 
- 		if (me.isSockChannel) {
- 			me.SocketChannel = new SocketChannel();
- 			await me.SocketChannel.init(me);
- 		}
+		if (me.isSockChannel) {
+			me.SocketChannel = new SocketChannel();
+			await me.SocketChannel.init(me);
+		}
 
- 	}
+	}
 
- 	/**
- 	 * Use internaly from channel to register received
- 	 * API definitiona and security data
- 	 */
- 	async registerAPI(data) {
+	/**
+	 * Use internaly from channel to register received
+	 * API definitiona and security data
+	 */
+	async registerAPI(data) {
 
- 		let me = this;
+		let me = this;
 
- 		// initialize encryption if provided
- 		if (data.signature) {
- 			if (!me.Security.isActive()) {
- 				await me.Security.init(data);
- 			}
- 		}
+		// initialize encryption if provided
+		if (data.signature) {
+			if (!me.Security.isActive) {
+				await me.Security.init(data);
+			}
+		}
 
- 		me.Generator.build(data.api);
- 	}
+		me.Generator.build(data.api);
+	}
 
- 	/**
- 	 * Stop engine instance by clearing all references
- 	 * stoping listeners, stoping socket is avaialble
- 	 */
- 	stop() {
+	/**
+	 * Stop engine instance by clearing all references
+	 * stoping listeners, stoping socket is avaialble
+	 */
+	stop() {
 
- 		let me = this;
+		let me = this;
 
- 		if (me.WebChannel) me.WebChannel.stop();
- 		if (me.SocketChannel) me.SocketChannel.stop();
- 		if (me.Generator) me.Generator.stop();
+		if (me.WebChannel) me.WebChannel.stop();
+		if (me.SocketChannel) me.SocketChannel.stop();
+		if (me.Generator) me.Generator.stop();
 
- 		me.WebChannel = null;
- 		me.SocketChannel = null;
- 		me.Generator = null;
- 		me.Security = null;
- 		me.cfg = null;
- 	}
+		me.WebChannel = null;
+		me.SocketChannel = null;
+		me.Generator = null;
+		me.Security = null;
+		me.cfg = null;
+	}
 
- 	/*
- 	 * Return generated API
- 	 */
- 	get api() {
- 		return this.Generator ? this.Generator.api : null;
- 	}
+	/*
+	 * Return generated API
+	 */
+	get api() {
+		return this.Generator ? this.Generator.api : null;
+	}
 
- 	/*
- 	 * Check if engine is active
- 	 */
- 	get isActive() {
- 		return this.api && this.Security;
- 	}
+	/*
+	 * Check if engine is active
+	 */
+	get isActive() {
+		return this.api && this.Security;
+	}
 
- 	/*
- 	 * Return API URL address
- 	 */
- 	get apiURL() {
- 		return this.cfg ? this.cfg.api : null;
- 	}
+	/*
+	 * Return API URL address
+	 */
+	get apiURL() {
+		return this.cfg ? this.cfg.api : null;
+	}
 
- 	/*
- 	 * Return Service URL address
- 	 */
- 	get serviceURL() {
- 		return this.cfg ? this.cfg.service : null;
- 	}
+	/*
+	 * Return Service URL address
+	 */
+	get serviceURL() {
+		return this.cfg ? this.cfg.service : null;
+	}
 
+	static async init(cfg) {
+		let engine = new Engine(cfg);
+		await engine.init();
+		return engine;
+	}
 }
 

@@ -48,7 +48,7 @@ class Queue extends Map {
 	process(obj) {
 		let me = this;
 		if (Array.isArray(obj)) {
-			obj.forEach( me.execute.bind(me) );
+			obj.forEach(me.execute.bind(me));
 		} else {
 			me.execute(obj);
 		}

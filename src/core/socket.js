@@ -47,6 +47,55 @@ class SocketChannel {
 		return true;
 	}
 
+	/**
+	 * Check if data can be encrypted
+	 *
+	 * @param {Object} req
+	 */
+	canEncrypt(req) {
+		let hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
+		return this.engine.Security.isActive && hasArgs;
+	}
+
+	/**
+	 * Prepare remtoe call, encrypt if avaialble
+	 *
+	 * @param {Object} req
+	 *         Data to send (optionaly encrypt)
+	 */
+	async onCall(req, callback) {
+
+		let me = this;
+		let msg = null;
+		let enc = null;
+		let data = null;
+
+		let isEncrypt = me.canEncrypt(req);
+
+		me.queue.updateRequest(req, callback);
+
+		// encrypt if supported
+		if (isEncrypt) {
+			enc = await me.engine.Security.encrypt(req.data);
+			req.data = [enc];
+		}
+
+		data = {
+			cmd: isEncrypt ? 'enc' : 'data',
+			type: 'ws',
+			data: [req]
+		};
+
+		msg = JSON.stringify(data);
+
+		if (!Streams.isAvailable()) {
+			return me.webSocket.send(msg);
+		}
+
+		msg = await Streams.compress(msg);
+		me.webSocket.send(msg);
+	}
+
 	async _startSocket(resolve, reject) {
 
 		let me = this;

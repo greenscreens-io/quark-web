@@ -1,4 +1,3 @@
-
 /*
 class TestEvents extends EventES6 {
      constructor() {
@@ -65,8 +64,7 @@ class Events {
 	off(label, callback = true) {
 		if (callback === true) {
 			// remove listeners for all callbackfunctions
-			this.listeners.delete(label);
-			this.onceListeners.delete(label);
+			this.removeAllListeners(label);
 		} else {
 			// remove listeners only with match callbackfunctions
 			let _off = (inListener) => {
@@ -78,6 +76,11 @@ class Events {
 			_off(this.listeners);
 			_off(this.onceListeners);
 		}
+	}
+
+	removeAllListeners(label) {
+		this.listeners.delete(label);
+		this.onceListeners.delete(label);
 	}
 
 	// trigger the event with the label
