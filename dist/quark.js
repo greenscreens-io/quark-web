@@ -1,6 +1,10 @@
 /* Quark Engine v2.0.0 (c) Green Screens Ltd. */
 
 /*
+ * Copyright (C) 2015, 2020  Green Screens Ltd.
+ */
+
+/*
 class TestEvents extends EventES6 {
      constructor() {
         super();
@@ -8,7 +12,7 @@ class TestEvents extends EventES6 {
 }
 obj.on('', callback)
 obj.once('', callback)
-obj.trigger('', ...args)
+obj.emit('', ...args)
 */
 
 class Events {
@@ -109,6 +113,69 @@ class Events {
  * Copyright (C) 2015, 2020  Green Screens Ltd.
  */
 
+/*
+ * Simulate NoedJS Buffer, simple
+ */
+class Buffer {
+
+	static from(value, type) {
+		switch (type) {
+			case 'base64':
+				return Buffer.fromBase64(value);
+			case 'hex':
+				return Buffer.fromHex(value);
+		}
+		return value;
+	}
+
+	static to(value, type) {
+		switch (type) {
+			case 'base64':
+				return Buffer.toBase64(value);
+			case 'hex':
+				return Buffer.toHex(value);
+		}
+		return value;
+	}
+
+	static fromHex(value) {
+
+		let arry = [];
+
+		for (let i = 0; i < value.length; i += 2) {
+			arry.push(parseInt("0x" + value.substr(i, 2), 16));
+		}
+
+		return new Uint8Array(arry);
+	}
+
+	static fromBase64(value) {
+
+		let strbin = atob(value);
+		let buffer = new ArrayBuffer(strbin.length);
+		let bufView = new Uint8Array(buffer);
+
+		for (let i = 0, strLen = strbin.length; i < strLen; i++) {
+			bufView[i] = strbin.charCodeAt(i);
+		}
+
+		return bufView;
+	}
+
+	static toHex(buffer) {
+		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+	}
+
+	static toBase64(buffer) {
+		return btoa(new Uint8Array(buffer));
+	}
+
+}
+
+/*
+ * Copyright (C) 2015, 2020  Green Screens Ltd.
+ */
+
 /**
  * Queue to handle requests
  */
@@ -196,9 +263,7 @@ class Queue extends Map {
  */
 class Streams {
 
-	// 'deflate' or 'gzip'
-
-	static isAvailable() {
+	static get isAvailable() {
 		return typeof CompressionStream !== 'undefined';
 	}
 
@@ -311,8 +376,7 @@ class Security {
 	 */
 	async importRsaKey(key, type, mode) {
 
-		let binaryDerString = window.atob(key);
-		let binaryDer = this.str2ab(binaryDerString);
+		let binaryDer = Buffer.from(key, 'base64');
 
 		return crypto.subtle.importKey(
 			"spki",
@@ -338,7 +402,7 @@ class Security {
 	async verify(key, signature, challenge) {
 
 		let me = this;
-		let binSignature = me.str2ab(atob(signature));
+		let binSignature = Buffer.from(signature, 'base64');
 		let binChallenge = me.encoder.encode(challenge);
 
 		let type = {
@@ -398,19 +462,16 @@ class Security {
 	 */
 	async decryptAesMessage(key, iv, data) {
 
-		let me = this;
-		let databin = me.hex2ab(data);
-		let ivbin = me.hex2ab(iv);
+		let databin = Buffer.from(data, "hex");
+		let counter = Buffer.from(iv, "hex");
 
-		let counter = new Uint8Array(ivbin);
-		let dataArray = new Uint8Array(databin);
 		let type = {
 			name: "AES-CTR",
 			counter: counter,
 			length: 128
 		};
 
-		return crypto.subtle.decrypt(type, key, dataArray);
+		return crypto.subtle.decrypt(type, key, databin);
 	}
 
 	get isValid() {
@@ -418,7 +479,7 @@ class Security {
 		return me.encKEY !== null && me.aesKEY !== null;
 	}
 
-	get isAvailable() {
+	static get isAvailable() {
 		return crypto.subtle != null;
 	}
 
@@ -430,7 +491,7 @@ class Security {
 
 		let me = this;
 
-		if (!me.isAvailable) {
+		if (!Security.isAvailable) {
 			console.log('Security mode not available, TLS protocol required.');
 			return;
 		}
@@ -479,8 +540,9 @@ class Security {
 		key.set(iv);
 		key.set(me.exportedAES, iv.length);
 
+		let str = (typeof data === 'string') ? data : JSON.stringify(data);
 		let encryptedKey = await me.encryptRSA(key);
-		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, data);
+		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, str);
 
 		if (bin === true) {
 			return {
@@ -490,8 +552,8 @@ class Security {
 		}
 
 		return {
-			d: me.buf2hex(encryptedData),
-			k: me.buf2hex(encryptedKey)
+			d: Buffer.to(encryptedData, 'hex'),
+			k: Buffer.to(encryptedKey, 'hex')
 		};
 
 	}
@@ -523,63 +585,12 @@ class Security {
 		return obj;
 	}
 
-
-	/**
-	 * Convert hex string to int array
-	 *
-	 * @param str
-	 * @returns
-	 */
-	hex2ab(str) {
-
-		let a = [];
-
-		for (let i = 0; i < str.length; i += 2) {
-			a.push(parseInt("0x" + str.substr(i, 2), 16));
-		}
-
-		return a;
-	}
-
-	/**
-	 * Convert string to int array
-	 *
-	 * @param
-	 * 	 str - string to convert
-	 *
-	 * @returns
-	 * 	  ArrayBuffer of ints
-	 */
-	str2ab(str) {
-
-		let buf = new ArrayBuffer(str.length);
-		let bufView = new Uint8Array(buf);
-
-		for (let i = 0, strLen = str.length; i < strLen; i++) {
-			bufView[i] = str.charCodeAt(i);
-		}
-
-		return buf;
-	}
-
-	/**
-	 * Convert array of ints into hex string
-	 *
-	 * @param
-	 * 	buffer - buffer is an ArrayBuffer
-	 *
-	 * @returns
-	 * 	string in hex format
-	 */
-	buf2hex(buffer) {
-		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-	}
-
 	static async init(cfg) {
 		let security = new Security();
 		await security.init(cfg);
 		return security;
 	}
+
 };
 
 /*
@@ -613,10 +624,26 @@ class Generator extends Events {
 		let me = this;
 		me.removeAllListeners('call');
 		me.removeAllListeners('api');
+		me.detach();
+	}
 
+	/**
+	 * Detach generated API namespace from global
+	 */
+	detach() {
+		let me = this;
 		let root = typeof global === 'undefined' ? self : global;
 		Object.keys(me._model).forEach(v => root[v] = null);
-		this._model = {};
+		me._model = {};
+	}
+
+	/**
+	 * Attach generated API namespace to global
+	 */
+	attach() {
+		let me = this;
+		let root = typeof global === 'undefined' ? self : global;
+		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
 	}
 
 	/**
@@ -633,10 +660,7 @@ class Generator extends Events {
 
 		if (!data) return data;
 		me._buildAPI(data);
-
-		// attach to global
-		let root = typeof global === 'undefined' ? self : global;
-		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
+		me.attach();
 
 		return data;
 	}
@@ -799,13 +823,17 @@ class Generator extends Events {
 			reject(obj.result || obj);
 		}
 
-	};
+	}
 
+	/**
+	 * Static instance builder
+	 */
 	static async build(cfg) {
 		let generator = new Generator();
 		generator.build(cfg);
 		return generator;
 	}
+
 }
 
 /*
@@ -824,31 +852,55 @@ class WebChannel {
 	async init(engine) {
 
 		let me = this;
-		let Generator = engine.Generator;
+
+		if (me.engine) me.stop();
+
+		me.engine = engine;
+		let generator = engine.Generator;
 
 		let data = await me.getAPI(engine.apiURL);
 		await engine.registerAPI(data);
 
 		if (engine.isSockChannel) return;
 
-		Generator.on('call', async (req, callback) => {
-
-			let o = null;
-			let e = null;
-
-			try {
-				o = await me.onCall(engine, req);
-			} catch (err) {
-				e = err;
-			}
-
-			callback(e, o);
-
-		});
+		generator.on('call', me.onRequest.bind(me));
 
 	}
 
+	/**
+	 * Disengage listeneres and links
+	 */
 	stop() {
+
+		let me = this;
+		let engine = me.engine;
+		me.engine = null;
+
+		engine.Generator.off('call');
+		if (!engine.isSockChannel) {
+			fetch(engine.serviceURL, {
+				method: 'delete'
+			});
+		}
+	}
+
+	/**
+	 * Callback for API call request,
+	 * here we make remote API call
+	 */
+	async onRequest(req, callback) {
+
+		let me = this;
+		let o = null;
+		let e = null;
+
+		try {
+			o = await me.onCall(me.engine, req);
+		} catch (err) {
+			e = err;
+		}
+
+		callback(e, o);
 
 	}
 
@@ -893,7 +945,7 @@ class WebChannel {
 		let body = JSON.stringify(data);
 		let req = {
 			method: 'post',
-			heaedrs: HEADERS,
+			headers: HEADERS,
 			body: body
 		};
 		let res = await fetch(url, req);
@@ -915,16 +967,16 @@ class WebChannel {
 	async onCall(engine, req) {
 
 		let me = this;
-		let Security = engine.Security;
+		let security = engine.Security;
 		let url = engine.serviceURL;
 
 		let hasArgs = Array.isArray(req.data) && req.data.length > 0;
-		let shouldEncrypt = Security.isActive && hasArgs;
+		let shouldEncrypt = security.isValid && hasArgs;
 		let data = req;
 
 		// encrypt if supported
 		if (shouldEncrypt) {
-			data = await Security.encrypt(JSON.stringify(req));
+			data = await security.encrypt(req);
 		}
 
 		// send and wait for response
@@ -937,7 +989,11 @@ class WebChannel {
 
 		// if encrypted, decrypt
 		if (data.cmd === 'enc') {
-			data = await Security.decrypt(data);
+			if (security.isValid) {
+				data = await security.decrypt(data);
+			} else {
+				throw new Error('Security available on https/wss only');
+			}
 		}
 
 		// return server response
@@ -1003,7 +1059,7 @@ class SocketChannel {
 	 */
 	canEncrypt(req) {
 		let hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
-		return this.engine.Security.isActive && hasArgs;
+		return this.engine.Security.isValid && hasArgs;
 	}
 
 	/**
@@ -1037,7 +1093,7 @@ class SocketChannel {
 
 		msg = JSON.stringify(data);
 
-		if (!Streams.isAvailable()) {
+		if (!Streams.isAvailable) {
 			return me.webSocket.send(msg);
 		}
 
@@ -1050,7 +1106,6 @@ class SocketChannel {
 		let me = this;
 		let engine = me.engine;
 		let generator = engine.Generator;
-		let security = engine.Security;
 
 		let challenge = Date.now();
 		let url = engine.serviceURL + '?q=' + challenge;
@@ -1160,7 +1215,11 @@ class SocketChannel {
 		}
 
 		if (obj.cmd === 'enc') {
-			data = await security.decrypt(obj);
+			if (Security.isAvailable) {
+				data = await security.decrypt(obj);
+			} else {
+				return generator.emit('error', new Error('Security available on https/wss only'));
+			}
 		}
 
 		if (obj.cmd === 'data') {
@@ -1316,6 +1375,9 @@ class Engine {
 		return this.cfg ? this.cfg.service : null;
 	}
 
+	/*
+	 * Static instance builder
+	 */
 	static async init(cfg) {
 		let engine = new Engine(cfg);
 		await engine.init();
