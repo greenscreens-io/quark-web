@@ -8,7 +8,7 @@
 class Streams {
 
 	static get isAvailable() {
-		return typeof CompressionStream !== 'undefined';
+		return typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
 	}
 
 	static async compress(text, encoding = 'gzip') {
