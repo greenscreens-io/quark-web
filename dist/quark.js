@@ -1,4 +1,4 @@
-/* Quark Engine v2.0.0 (c) Green Screens Ltd. */
+/* Quark Engine v2.1.0 (c) Green Screens Ltd. */
 
 /*
  * Copyright (C) 2015, 2020  Green Screens Ltd.
@@ -1108,7 +1108,7 @@ class SocketChannel {
 		let generator = engine.Generator;
 
 		let challenge = Date.now();
-		let url = engine.serviceURL + '?q=' + challenge;
+		let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
 
 		me.webSocket = new WebSocket(url, ['ws4is']);
 		me.webSocket.binaryType = "arraybuffer";
