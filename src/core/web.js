@@ -107,7 +107,7 @@ class WebChannel {
 		let body = JSON.stringify(data);
 		let req = {
 			method: 'post',
-			heaedrs: HEADERS,
+			headers: HEADERS,
 			body: body
 		};
 		let res = await fetch(url, req);
