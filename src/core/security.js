@@ -87,8 +87,7 @@ class Security {
 	 */
 	async importRsaKey(key, type, mode) {
 
-		let binaryDerString = window.atob(key);
-		let binaryDer = this.str2ab(binaryDerString);
+		let binaryDer = Buffer.from(key, 'base64');
 
 		return crypto.subtle.importKey(
 			"spki",
@@ -114,7 +113,7 @@ class Security {
 	async verify(key, signature, challenge) {
 
 		let me = this;
-		let binSignature = me.str2ab(atob(signature));
+		let binSignature = Buffer.from(signature, 'base64');
 		let binChallenge = me.encoder.encode(challenge);
 
 		let type = {
@@ -174,19 +173,16 @@ class Security {
 	 */
 	async decryptAesMessage(key, iv, data) {
 
-		let me = this;
-		let databin = me.hex2ab(data);
-		let ivbin = me.hex2ab(iv);
+		let databin = Buffer.from(data, "hex");
+		let counter = Buffer.from(iv, "hex");
 
-		let counter = new Uint8Array(ivbin);
-		let dataArray = new Uint8Array(databin);
 		let type = {
 			name: "AES-CTR",
 			counter: counter,
 			length: 128
 		};
 
-		return crypto.subtle.decrypt(type, key, dataArray);
+		return crypto.subtle.decrypt(type, key, databin);
 	}
 
 	get isValid() {
@@ -194,7 +190,7 @@ class Security {
 		return me.encKEY !== null && me.aesKEY !== null;
 	}
 
-	get isAvailable() {
+	static get isAvailable() {
 		return crypto.subtle != null;
 	}
 
@@ -206,7 +202,7 @@ class Security {
 
 		let me = this;
 
-		if (!me.isAvailable) {
+		if (!Security.isAvailable) {
 			console.log('Security mode not available, TLS protocol required.');
 			return;
 		}
@@ -255,8 +251,9 @@ class Security {
 		key.set(iv);
 		key.set(me.exportedAES, iv.length);
 
+		let str = (typeof data === 'string') ? data : JSON.stringify(data);
 		let encryptedKey = await me.encryptRSA(key);
-		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, data);
+		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, str);
 
 		if (bin === true) {
 			return {
@@ -266,8 +263,8 @@ class Security {
 		}
 
 		return {
-			d: me.buf2hex(encryptedData),
-			k: me.buf2hex(encryptedKey)
+			d: Buffer.to(encryptedData, 'hex'),
+			k: Buffer.to(encryptedKey, 'hex')
 		};
 
 	}
@@ -299,61 +296,10 @@ class Security {
 		return obj;
 	}
 
-
-	/**
-	 * Convert hex string to int array
-	 *
-	 * @param str
-	 * @returns
-	 */
-	hex2ab(str) {
-
-		let a = [];
-
-		for (let i = 0; i < str.length; i += 2) {
-			a.push(parseInt("0x" + str.substr(i, 2), 16));
-		}
-
-		return a;
-	}
-
-	/**
-	 * Convert string to int array
-	 *
-	 * @param
-	 * 	 str - string to convert
-	 *
-	 * @returns
-	 * 	  ArrayBuffer of ints
-	 */
-	str2ab(str) {
-
-		let buf = new ArrayBuffer(str.length);
-		let bufView = new Uint8Array(buf);
-
-		for (let i = 0, strLen = str.length; i < strLen; i++) {
-			bufView[i] = str.charCodeAt(i);
-		}
-
-		return buf;
-	}
-
-	/**
-	 * Convert array of ints into hex string
-	 *
-	 * @param
-	 * 	buffer - buffer is an ArrayBuffer
-	 *
-	 * @returns
-	 * 	string in hex format
-	 */
-	buf2hex(buffer) {
-		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-	}
-
 	static async init(cfg) {
 		let security = new Security();
 		await security.init(cfg);
 		return security;
 	}
+
 };

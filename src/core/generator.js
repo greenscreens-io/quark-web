@@ -29,10 +29,26 @@ class Generator extends Events {
 		let me = this;
 		me.removeAllListeners('call');
 		me.removeAllListeners('api');
+		me.detach();
+	}
 
+	/**
+	 * Detach generated API namespace from global
+	 */
+	detach() {
+		let me = this;
 		let root = typeof global === 'undefined' ? self : global;
 		Object.keys(me._model).forEach(v => root[v] = null);
-		this._model = {};
+		me._model = {};
+	}
+
+	/**
+	 * Attach generated API namespace to global
+	 */
+	attach() {
+		let me = this;
+		let root = typeof global === 'undefined' ? self : global;
+		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
 	}
 
 	/**
@@ -49,10 +65,7 @@ class Generator extends Events {
 
 		if (!data) return data;
 		me._buildAPI(data);
-
-		// attach to global
-		let root = typeof global === 'undefined' ? self : global;
-		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
+		me.attach();
 
 		return data;
 	}
@@ -215,11 +228,15 @@ class Generator extends Events {
 			reject(obj.result || obj);
 		}
 
-	};
+	}
 
+	/**
+	 * Static instance builder
+	 */
 	static async build(cfg) {
 		let generator = new Generator();
 		generator.build(cfg);
 		return generator;
 	}
+
 }

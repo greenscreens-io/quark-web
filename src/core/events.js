@@ -1,4 +1,8 @@
 /*
+ * Copyright (C) 2015, 2020  Green Screens Ltd.
+ */
+
+/*
 class TestEvents extends EventES6 {
      constructor() {
         super();
@@ -6,7 +10,7 @@ class TestEvents extends EventES6 {
 }
 obj.on('', callback)
 obj.once('', callback)
-obj.trigger('', ...args)
+obj.emit('', ...args)
 */
 
 class Events {

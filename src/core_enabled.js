@@ -1,4 +1,5 @@
 /*=include core/events.js */
+/*=include core/buffer.js */
 /*=include core/queue.js */
 /*=include core/streams.js */
 /*=include core/security.js */

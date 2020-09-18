@@ -54,7 +54,7 @@ class SocketChannel {
 	 */
 	canEncrypt(req) {
 		let hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
-		return this.engine.Security.isActive && hasArgs;
+		return this.engine.Security.isValid && hasArgs;
 	}
 
 	/**
@@ -88,7 +88,7 @@ class SocketChannel {
 
 		msg = JSON.stringify(data);
 
-		if (!Streams.isAvailable()) {
+		if (!Streams.isAvailable) {
 			return me.webSocket.send(msg);
 		}
 
@@ -101,7 +101,6 @@ class SocketChannel {
 		let me = this;
 		let engine = me.engine;
 		let generator = engine.Generator;
-		let security = engine.Security;
 
 		let challenge = Date.now();
 		let url = engine.serviceURL + '?q=' + challenge;
@@ -211,7 +210,11 @@ class SocketChannel {
 		}
 
 		if (obj.cmd === 'enc') {
-			data = await security.decrypt(obj);
+			if (Security.isAvailable) {
+				data = await security.decrypt(obj);
+			} else {
+				return generator.emit('error', new Error('Security available on https/wss only'));
+			}
 		}
 
 		if (obj.cmd === 'data') {

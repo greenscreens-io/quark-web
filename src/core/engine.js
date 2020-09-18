@@ -139,6 +139,9 @@ class Engine {
 		return this.cfg ? this.cfg.service : null;
 	}
 
+	/*
+	 * Static instance builder
+	 */
 	static async init(cfg) {
 		let engine = new Engine(cfg);
 		await engine.init();

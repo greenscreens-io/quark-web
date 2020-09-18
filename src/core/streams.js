@@ -7,9 +7,7 @@
  */
 class Streams {
 
-	// 'deflate' or 'gzip'
-
-	static isAvailable() {
+	static get isAvailable() {
 		return typeof CompressionStream !== 'undefined';
 	}
 

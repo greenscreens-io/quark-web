@@ -14,31 +14,55 @@ class WebChannel {
 	async init(engine) {
 
 		let me = this;
-		let Generator = engine.Generator;
+
+		if (me.engine) me.stop();
+
+		me.engine = engine;
+		let generator = engine.Generator;
 
 		let data = await me.getAPI(engine.apiURL);
 		await engine.registerAPI(data);
 
 		if (engine.isSockChannel) return;
 
-		Generator.on('call', async (req, callback) => {
-
-			let o = null;
-			let e = null;
-
-			try {
-				o = await me.onCall(engine, req);
-			} catch (err) {
-				e = err;
-			}
-
-			callback(e, o);
-
-		});
+		generator.on('call', me.onRequest.bind(me));
 
 	}
 
+	/**
+	 * Disengage listeneres and links
+	 */
 	stop() {
+
+		let me = this;
+		let engine = me.engine;
+		me.engine = null;
+
+		engine.Generator.off('call');
+		if (!engine.isSockChannel) {
+			fetch(engine.serviceURL, {
+				method: 'delete'
+			});
+		}
+	}
+
+	/**
+	 * Callback for API call request,
+	 * here we make remote API call
+	 */
+	async onRequest(req, callback) {
+
+		let me = this;
+		let o = null;
+		let e = null;
+
+		try {
+			o = await me.onCall(me.engine, req);
+		} catch (err) {
+			e = err;
+		}
+
+		callback(e, o);
 
 	}
 
@@ -105,16 +129,16 @@ class WebChannel {
 	async onCall(engine, req) {
 
 		let me = this;
-		let Security = engine.Security;
+		let security = engine.Security;
 		let url = engine.serviceURL;
 
 		let hasArgs = Array.isArray(req.data) && req.data.length > 0;
-		let shouldEncrypt = Security.isActive && hasArgs;
+		let shouldEncrypt = security.isValid && hasArgs;
 		let data = req;
 
 		// encrypt if supported
 		if (shouldEncrypt) {
-			data = await Security.encrypt(JSON.stringify(req));
+			data = await security.encrypt(req);
 		}
 
 		// send and wait for response
@@ -127,7 +151,11 @@ class WebChannel {
 
 		// if encrypted, decrypt
 		if (data.cmd === 'enc') {
-			data = await Security.decrypt(data);
+			if (security.isValid) {
+				data = await security.decrypt(data);
+			} else {
+				throw new Error('Security available on https/wss only');
+			}
 		}
 
 		// return server response
