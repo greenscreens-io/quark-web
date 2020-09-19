@@ -8,10 +8,10 @@
  * Used to call remote services.
  * All Direct functions linked to io.greenscreens namespace
  */
-class SocketChannel {
+class SocketChannel extends Events {
 
 	constructor() {
-
+		super();
 		let me = this;
 
 		me.queue = new Queue();
@@ -112,6 +112,7 @@ class SocketChannel {
 
 		me.webSocket.onopen = (event) => {
 
+			me.emit('online', event);
 			generator.on('call', onCall);
 
 			if (!engine.isWSAPI) {
@@ -135,12 +136,14 @@ class SocketChannel {
 		me.webSocket.onclose = (event) => {
 			generator.off('call', onCall);
 			me.stop();
+			me.emit('offline', event);
 		}
 
 		me.webSocket.onerror = (event) => {
 			generator.off('call', onCall);
 			reject(event);
 			me.stop();
+			me.emit('error', event);
 		};
 
 		me.webSocket.onmessage = (event) => {
@@ -222,7 +225,10 @@ class SocketChannel {
 		}
 
 		if (data) {
-			me.queue.process(data);
+			let unknown = me.queue.process(data);
+			unknown.forEach((obj) => me.emit('message', obj));
+		} else {
+			me.emit('message', data);
 		}
 
 	}

@@ -37,7 +37,7 @@ class Engine {
 		me.Security = null;
 		me.Generator = null;
 		me.WebChannel = null;
-		me.SockChannel = null;
+		me.SocketChannel = null;
 
 		me.cfg = cfg;
 		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;

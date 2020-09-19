@@ -18,15 +18,15 @@ class Events {
 	constructor() {
 		this.listeners = new Map();
 		this.onceListeners = new Map();
-		this.triggerdLabels = new Map();
+		this.triggers = new Map();
 	}
 
 	// help-function for onReady and onceReady
 	// the callbackfunction will execute,
 	// if the label has already been triggerd with the last called parameters
-	_fCheckPast(label, callback) {
-		if (this.triggerdLabels.has(label)) {
-			callback(this.triggerdLabels.get(label));
+	_checkPast(label, callback) {
+		if (this.triggers.has(label)) {
+			callback(this.triggers.get(label));
 			return true;
 		} else {
 			return false;
@@ -38,7 +38,7 @@ class Events {
 		this.listeners.has(label) || this.listeners.set(label, []);
 		this.listeners.get(label).push(callback);
 		if (checkPast)
-			this._fCheckPast(label, callback);
+			this._checkPast(label, callback);
 	}
 
 	// execute the callback everytime the label is trigger
@@ -51,9 +51,7 @@ class Events {
 	// execute the callback onetime the label is trigger
 	once(label, callback, checkPast = false) {
 		this.onceListeners.has(label) || this.onceListeners.set(label, []);
-		if (!(checkPast && this._fCheckPast(label, callback))) {
-			// label wurde nocht nicht aufgerufen und
-			// der callback in _fCheckPast nicht ausgeführt
+		if (!(checkPast && this._checkPast(label, callback))) {
 			this.onceListeners.get(label).push(callback);
 		}
 	}
@@ -87,10 +85,14 @@ class Events {
 		this.onceListeners.delete(label);
 	}
 
+	trigger(label, ...args) {
+		this.emit(label, ...args);
+	}
+
 	// trigger the event with the label
 	emit(label, ...args) {
 		let res = false;
-		this.triggerdLabels.set(label, ...args); // save all triggerd labels for onready and onceready
+		this.triggers.set(label, ...args); // save all triggerd labels for onready and onceready
 		let _trigger = (inListener, label, ...args) => {
 			let listeners = inListener.get(label);
 			if (listeners && listeners.length) {

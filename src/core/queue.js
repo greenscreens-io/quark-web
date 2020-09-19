@@ -46,12 +46,21 @@ class Queue extends Map {
 	 * @param {Object} obj
 	 */
 	process(obj) {
+
 		let me = this;
+		let unknown = [];
+
 		if (Array.isArray(obj)) {
-			obj.forEach(me.execute.bind(me));
+			obj.forEach((o) => {
+				let res = me.execute(o);
+				if (res) unkown.push(res);
+			});
 		} else {
-			me.execute(obj);
+			let o = me.execute(obj);
+			if (o) unknown.push(o);
 		}
+
+		return unknown;
 	}
 
 
@@ -64,18 +73,25 @@ class Queue extends Map {
 
 		let me = this;
 		let tid = obj.tid;
+		let unknown = null;
 
 		me.down++;
 
 		if (me.has(tid)) {
 			try {
 				me.get(tid)(null, obj);
+			} catch (e) {
+				console.log(e);
+				me.get(tid)(e, null);
 			} finally {
 				me.delete(tid);
 			}
+		} else {
+			unknown = obj;
 		}
 
 		me.reset();
 
+		return unknown;
 	};
 }

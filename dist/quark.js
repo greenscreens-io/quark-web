@@ -20,15 +20,15 @@ class Events {
 	constructor() {
 		this.listeners = new Map();
 		this.onceListeners = new Map();
-		this.triggerdLabels = new Map();
+		this.triggers = new Map();
 	}
 
 	// help-function for onReady and onceReady
 	// the callbackfunction will execute,
 	// if the label has already been triggerd with the last called parameters
-	_fCheckPast(label, callback) {
-		if (this.triggerdLabels.has(label)) {
-			callback(this.triggerdLabels.get(label));
+	_checkPast(label, callback) {
+		if (this.triggers.has(label)) {
+			callback(this.triggers.get(label));
 			return true;
 		} else {
 			return false;
@@ -40,7 +40,7 @@ class Events {
 		this.listeners.has(label) || this.listeners.set(label, []);
 		this.listeners.get(label).push(callback);
 		if (checkPast)
-			this._fCheckPast(label, callback);
+			this._checkPast(label, callback);
 	}
 
 	// execute the callback everytime the label is trigger
@@ -53,9 +53,7 @@ class Events {
 	// execute the callback onetime the label is trigger
 	once(label, callback, checkPast = false) {
 		this.onceListeners.has(label) || this.onceListeners.set(label, []);
-		if (!(checkPast && this._fCheckPast(label, callback))) {
-			// label wurde nocht nicht aufgerufen und
-			// der callback in _fCheckPast nicht ausgeführt
+		if (!(checkPast && this._checkPast(label, callback))) {
 			this.onceListeners.get(label).push(callback);
 		}
 	}
@@ -89,10 +87,14 @@ class Events {
 		this.onceListeners.delete(label);
 	}
 
+	trigger(label, ...args) {
+		this.emit(label, ...args);
+	}
+
 	// trigger the event with the label
 	emit(label, ...args) {
 		let res = false;
-		this.triggerdLabels.set(label, ...args); // save all triggerd labels for onready and onceready
+		this.triggers.set(label, ...args); // save all triggerd labels for onready and onceready
 		let _trigger = (inListener, label, ...args) => {
 			let listeners = inListener.get(label);
 			if (listeners && listeners.length) {
@@ -220,12 +222,21 @@ class Queue extends Map {
 	 * @param {Object} obj
 	 */
 	process(obj) {
+
 		let me = this;
+		let unknown = [];
+
 		if (Array.isArray(obj)) {
-			obj.forEach(me.execute.bind(me));
+			obj.forEach((o) => {
+				let res = me.execute(o);
+				if (res) unkown.push(res);
+			});
 		} else {
-			me.execute(obj);
+			let o = me.execute(obj);
+			if (o) unknown.push(o);
 		}
+
+		return unknown;
 	}
 
 
@@ -238,19 +249,26 @@ class Queue extends Map {
 
 		let me = this;
 		let tid = obj.tid;
+		let unknown = null;
 
 		me.down++;
 
 		if (me.has(tid)) {
 			try {
 				me.get(tid)(null, obj);
+			} catch (e) {
+				console.log(e);
+				me.get(tid)(e, null);
 			} finally {
 				me.delete(tid);
 			}
+		} else {
+			unknown = obj;
 		}
 
 		me.reset();
 
+		return unknown;
 	};
 }
 
@@ -264,7 +282,8 @@ class Queue extends Map {
 class Streams {
 
 	static get isAvailable() {
-		return typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
+		return typeof CompressionStream !== 'undefined' &&
+				typeof DecompressionStream !== 'undefined';
 	}
 
 	static async compress(text, encoding = 'gzip') {
@@ -1013,10 +1032,10 @@ class WebChannel {
  * Used to call remote services.
  * All Direct functions linked to io.greenscreens namespace
  */
-class SocketChannel {
+class SocketChannel extends Events {
 
 	constructor() {
-
+		super();
 		let me = this;
 
 		me.queue = new Queue();
@@ -1117,6 +1136,7 @@ class SocketChannel {
 
 		me.webSocket.onopen = (event) => {
 
+			me.emit('online', event);
 			generator.on('call', onCall);
 
 			if (!engine.isWSAPI) {
@@ -1140,12 +1160,14 @@ class SocketChannel {
 		me.webSocket.onclose = (event) => {
 			generator.off('call', onCall);
 			me.stop();
+			me.emit('offline', event);
 		}
 
 		me.webSocket.onerror = (event) => {
 			generator.off('call', onCall);
 			reject(event);
 			me.stop();
+			me.emit('error', event);
 		};
 
 		me.webSocket.onmessage = (event) => {
@@ -1227,7 +1249,10 @@ class SocketChannel {
 		}
 
 		if (data) {
-			me.queue.process(data);
+			let unknown = me.queue.process(data);
+			unknown.forEach((obj) => me.emit('message', obj));
+		} else {
+			me.emit('message', data);
 		}
 
 	}
@@ -1273,7 +1298,7 @@ class Engine {
 		me.Security = null;
 		me.Generator = null;
 		me.WebChannel = null;
-		me.SockChannel = null;
+		me.SocketChannel = null;
 
 		me.cfg = cfg;
 		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
