@@ -3,7 +3,7 @@
   "version": "2.2.0",
   "license": "MIT",
   "productName": "quark-engine",
-  "description": "Quark Engine Client lib for browsers",
+  "description": "Quark Engine Client lib for browsers ",
   "author": "Green Screens Ltd. <info@greenscreens.io>",
   "email": "info@greenscreens.io",
   "url": "http://www.greenscreens.io/quark",
