@@ -14,7 +14,7 @@ const gulp = require('gulp'),
 
 const JS_DEST = "dist";
 
-const version_no = "2.1.0",
+const version_no = "2.2.0",
 	version = `/* Quark Engine v${version_no} (c) Green Screens Ltd. */\n`;
 
 const gulp_src = gulp.src;

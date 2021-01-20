@@ -565,12 +565,14 @@ class Security {
 
 		if (bin === true) {
 			return {
+				t:'1',
 				d: encryptedData,
 				k: encryptedKey
 			};
 		}
 
 		return {
+			t:'1',
 			d: Buffer.to(encryptedData, 'hex'),
 			k: Buffer.to(encryptedKey, 'hex')
 		};
