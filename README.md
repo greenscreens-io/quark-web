@@ -13,4 +13,4 @@ or refer to [quark-demo](https://github.com/greenscreens-io/quark-demo) repo.
 2. call `npm install` to install dependencies
 3. call `gulp` to pack scripts into distributable lib
 
-&copy; Green Screens Ltd. 2016 - 2020
+&copy; Green Screens Ltd. 2016 - 2021
