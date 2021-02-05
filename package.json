@@ -1,6 +1,6 @@
 {
   "name": "quark-engine",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "license": "MIT",
   "productName": "quark-engine",
   "description": "Quark Engine Client lib for browsers ",

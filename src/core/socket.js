@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, 2021  Green Screens Ltd.
+ * Copyright (C) 2015, 2020  Green Screens Ltd.
  */
 
 
@@ -103,9 +103,13 @@ class SocketChannel extends Events {
 		let generator = engine.Generator;
 
 		let challenge = Date.now();
-		let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
+		
+		// let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
+		let url = new URL(engine.serviceURL);
+		url.searchParams.append('q', challenge);
+		url.searchParams.append('c', Streams.isAvailable);
 
-		me.webSocket = new WebSocket(url, ['ws4is']);
+		me.webSocket = new WebSocket(url.toString(), ['ws4is']);
 		me.webSocket.binaryType = "arraybuffer";
 
 		let onCall = me.onCall.bind(me);

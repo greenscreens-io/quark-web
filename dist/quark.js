@@ -1,4 +1,4 @@
-/* Quark Engine v2.2.0 (c) Green Screens Ltd. */
+/* Quark Engine v2.3.0 (c) Green Screens Ltd. */
 
 /*
  * Copyright (C) 2015, 2020  Green Screens Ltd.
@@ -889,7 +889,7 @@ class WebChannel {
 	}
 
 	/**
-	 * Disengage listeneres and links
+	 * Disengage listeners and links
 	 */
 	stop() {
 
@@ -977,13 +977,13 @@ class WebChannel {
 
 
 	/**
-	 * Prepare remtoe call, encrypt if avaialble
+	 * Prepare remote call, encrypt if available
 	 *
 	 * @param {String} url
 	 *        Service URL to receive data
 	 *
 	 * @param {Object} req
-	 *         Data to sen (optionaly encrypt)
+	 *         Data to send (optionally encrypt)
 	 */
 	async onCall(engine, req) {
 
@@ -1129,9 +1129,13 @@ class SocketChannel extends Events {
 		let generator = engine.Generator;
 
 		let challenge = Date.now();
-		let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
+		
+		// let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
+		let url = new URL(engine.serviceURL);
+		url.searchParams.append('q', challenge);
+		url.searchParams.append('c', Streams.isAvailable);
 
-		me.webSocket = new WebSocket(url, ['ws4is']);
+		me.webSocket = new WebSocket(url.toString(), ['ws4is']);
 		me.webSocket.binaryType = "arraybuffer";
 
 		let onCall = me.onCall.bind(me);
