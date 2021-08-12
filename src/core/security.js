@@ -14,7 +14,7 @@ class Security {
 
 	constructor() {
 
-		let me = this;
+		const me = this;
 		me.VERSION = 0;
 		me.encKEY = null;
 		me.aesKEY = null;
@@ -43,7 +43,7 @@ class Security {
 	 *     length of data (required)
 	 */
 	getRandom(size) {
-		let array = new Uint8Array(size);
+		const array = new Uint8Array(size);
 		crypto.getRandomValues(array);
 		return array;
 	}
@@ -53,11 +53,11 @@ class Security {
 	 * @returns CryptoKey
 	 */
 	async generateAesKey() {
-		let type = {
+		const type = {
 			name: "AES-CTR",
 			length: 128
 		};
-		let mode = ["encrypt", "decrypt"];
+		const mode = ["encrypt", "decrypt"];
 		return crypto.subtle.generateKey(type, true, mode);
 	}
 
@@ -67,7 +67,7 @@ class Security {
 	 * @returns Uin8Array
 	 */
 	async exportAesKey(key) {
-		let buffer = await crypto.subtle.exportKey("raw", key);
+		const buffer = await crypto.subtle.exportKey("raw", key);
 		return new Uint8Array(buffer);
 	}
 
@@ -87,7 +87,7 @@ class Security {
 	 */
 	async importRsaKey(key, type, mode) {
 
-		let binaryDer = Buffer.from(key, 'base64');
+		const binaryDer = Buffer.from(key, 'base64');
 
 		return crypto.subtle.importKey(
 			"spki",
@@ -112,11 +112,11 @@ class Security {
 	 */
 	async verify(key, signature, challenge) {
 
-		let me = this;
-		let binSignature = Buffer.from(signature, 'base64');
-		let binChallenge = me.encoder.encode(challenge);
+		const me = this;
+		const binSignature = Buffer.from(signature, 'base64');
+		const binChallenge = me.encoder.encode(challenge);
 
-		let type = {
+		const type = {
 			name: "ECDSA",
 			hash: {
 				name: "SHA-384"
@@ -139,8 +139,8 @@ class Security {
 	 */
 	async encryptRSA(data) {
 
-		let me = this;
-		let encoded = data;
+		const me = this;
+		const encoded = data;
 
 		if (typeof data === 'string') {
 			encoded = me.encoder.encode(data);
@@ -158,8 +158,8 @@ class Security {
 	 */
 	async encryptAesMessage(key, iv, data) {
 
-		let encoded = this.encoder.encode(data);
-		let type = {
+		const encoded = this.encoder.encode(data);
+		const type = {
 			name: "AES-CTR",
 			counter: iv,
 			length: 128
@@ -173,10 +173,10 @@ class Security {
 	 */
 	async decryptAesMessage(key, iv, data) {
 
-		let databin = Buffer.from(data, "hex");
-		let counter = Buffer.from(iv, "hex");
+		const databin = Buffer.from(data, "hex");
+		const counter = Buffer.from(iv, "hex");
 
-		let type = {
+		const type = {
 			name: "AES-CTR",
 			counter: counter,
 			length: 128
@@ -186,7 +186,7 @@ class Security {
 	}
 
 	get isValid() {
-		let me = this;
+		const me = this;
 		return me.encKEY !== null && me.aesKEY !== null;
 	}
 
@@ -200,7 +200,7 @@ class Security {
 	 */
 	async init(cfg) {
 
-		let me = this;
+		const me = this;
 
 		if (!Security.isAvailable) {
 			console.log('Security mode not available, TLS protocol required.');
@@ -219,12 +219,12 @@ class Security {
 		me.aesKEY = await me.generateAesKey();
 		me.exportedAES = await me.exportAesKey(me.aesKEY);
 
-		let verKey = await me.importRsaKey(cfg.keyVer, {
+		const verKey = await me.importRsaKey(cfg.keyVer, {
 			name: 'ECDSA',
 			namedCurve: "P-384"
 		}, 'verify');
 
-		let status = await me.verify(verKey, cfg.signature, me.getChallenge(cfg || {}));
+		const status = await me.verify(verKey, cfg.signature, me.getChallenge(cfg || {}));
 
 		if (!status) {
 			me.encKEY = null;
@@ -244,16 +244,16 @@ class Security {
 	 */
 	async encrypt(data, bin) {
 
-		let me = this;
-		let iv = me.getRandom(16);
-		let key = new Uint8Array(iv.length + me.exportedAES.length);
+		const me = this;
+		const iv = me.getRandom(16);
+		const key = new Uint8Array(iv.length + me.exportedAES.length);
 
 		key.set(iv);
 		key.set(me.exportedAES, iv.length);
 
-		let str = (typeof data === 'string') ? data : JSON.stringify(data);
-		let encryptedKey = await me.encryptRSA(key);
-		let encryptedData = await me.encryptAesMessage(me.aesKEY, iv, str);
+		const str = (typeof data === 'string') ? data : JSON.stringify(data);
+		const encryptedKey = await me.encryptRSA(key);
+		const encryptedData = await me.encryptAesMessage(me.aesKEY, iv, str);
 
 		if (bin === true) {
 			return {
@@ -282,14 +282,14 @@ class Security {
 	 */
 	async decrypt(cfg) {
 
-		let me = this;
-		let iv = cfg.iv;
-		let data = cfg.d;
+		const me = this;
+		const iv = cfg.iv;
+		const data = cfg.d;
 
-		let message = await me.decryptAesMessage(me.aesKEY, iv, data);
+		const message = await me.decryptAesMessage(me.aesKEY, iv, data);
 
-		let str = me.decoder.decode(message);
-		let obj = JSON.parse(str);
+		const str = me.decoder.decode(message);
+		const obj = JSON.parse(str);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			obj = obj.data;
@@ -299,7 +299,7 @@ class Security {
 	}
 
 	static async init(cfg) {
-		let security = new Security();
+		const security = new Security();
 		await security.init(cfg);
 		return security;
 	}

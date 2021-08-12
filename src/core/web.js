@@ -13,14 +13,14 @@ class WebChannel {
 	 */
 	async init(engine) {
 
-		let me = this;
+		const me = this;
 
 		if (me.engine) me.stop();
 
 		me.engine = engine;
-		let generator = engine.Generator;
+		const generator = engine.Generator;
 
-		let data = await me.getAPI(engine.apiURL);
+		const data = await me.getAPI(engine.apiURL);
 		await engine.registerAPI(data);
 
 		if (engine.isSockChannel) return;
@@ -34,8 +34,8 @@ class WebChannel {
 	 */
 	stop() {
 
-		let me = this;
-		let engine = me.engine;
+		const me = this;
+		const engine = me.engine;
 		me.engine = null;
 
 		engine.Generator.off('call');
@@ -52,7 +52,7 @@ class WebChannel {
 	 */
 	async onRequest(req, callback) {
 
-		let me = this;
+		const me = this;
 		let o = null;
 		let e = null;
 
@@ -74,17 +74,17 @@ class WebChannel {
 	 */
 	async getAPI(url) {
 
-		let service = url;
-		let id = Date.now();
+		const service = url;
+		const id = Date.now();
 
-		let resp = await fetch(service, {
+		const resp = await fetch(service, {
 			method: 'get',
 			headers: {
 				'x-time': id
 			}
 		});
 
-		let data = await resp.json();
+		const data = await resp.json();
 
 		// update local challenge for signature verificator
 		data.challenge = id.toString();
@@ -98,20 +98,20 @@ class WebChannel {
 	 */
 	async fetchCall(url, data) {
 
-		let MIME = 'application/json';
-		let HEADERS = {
+		const MIME = 'application/json';
+		const HEADERS = {
 			'Accept': MIME,
 			'Content-Type': MIME
 		};
 
-		let body = JSON.stringify(data);
-		let req = {
+		const body = JSON.stringify(data);
+		const req = {
 			method: 'post',
 			headers: HEADERS,
 			body: body
 		};
-		let res = await fetch(url, req);
-		let json = await res.json();
+		const res = await fetch(url, req);
+		const json = await res.json();
 
 		return json;
 	}
@@ -128,12 +128,12 @@ class WebChannel {
 	 */
 	async onCall(engine, req) {
 
-		let me = this;
-		let security = engine.Security;
-		let url = engine.serviceURL;
+		const me = this;
+		const security = engine.Security;
+		const url = engine.serviceURL;
 
-		let hasArgs = Array.isArray(req.data) && req.data.length > 0;
-		let shouldEncrypt = security.isValid && hasArgs;
+		const hasArgs = Array.isArray(req.data) && req.data.length > 0;
+		const shouldEncrypt = security.isValid && hasArgs;
 		let data = req;
 
 		// encrypt if supported

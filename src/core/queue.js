@@ -9,7 +9,7 @@ class Queue extends Map {
 
 	constructor() {
 		super();
-		let me = this;
+		const me = this;
 
 		me.up = 0;
 		me.down = 0;
@@ -22,7 +22,7 @@ class Queue extends Map {
 	 *      Request data
 	 */
 	updateRequest(req, callback) {
-		let me = this;
+		const me = this;
 		me.tid++;
 		me.up++;
 		req.tid = me.tid.toString();
@@ -33,7 +33,7 @@ class Queue extends Map {
 	 * Reset queue to remove old stalled elements
 	 */
 	reset() {
-		let me = this;
+		const me = this;
 		if (me.up > 50 && me.down >= me.up) {
 			me.up = 0;
 			me.down = 0;
@@ -47,8 +47,8 @@ class Queue extends Map {
 	 */
 	process(obj) {
 
-		let me = this;
-		let unknown = [];
+		const me = this;
+		const unknown = [];
 
 		if (Array.isArray(obj)) {
 			obj.forEach((o) => {
@@ -56,7 +56,7 @@ class Queue extends Map {
 				if (res) unkown.push(res);
 			});
 		} else {
-			let o = me.execute(obj);
+			const o = me.execute(obj);
 			if (o) unknown.push(o);
 		}
 
@@ -71,8 +71,8 @@ class Queue extends Map {
 	 */
 	execute(obj) {
 
-		let me = this;
-		let tid = obj.tid;
+		const me = this;
+		const tid = obj.tid;
 		let unknown = null;
 
 		me.down++;

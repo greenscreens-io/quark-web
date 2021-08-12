@@ -27,7 +27,7 @@ class Engine {
 			throw new Error(ERROR_SVC_UNDEFIEND);
 		}
 
-		let me = this;
+		const me = this;
 
 		me.cfg = null;
 		me.isWSAPI = false;
@@ -56,7 +56,7 @@ class Engine {
 	 */
 	async init() {
 
-		let me = this;
+		const me = this;
 		if (me.isActive) return;
 
 		me.Security = new Security();
@@ -80,7 +80,7 @@ class Engine {
 	 */
 	async registerAPI(data) {
 
-		let me = this;
+		const me = this;
 
 		// initialize encryption if provided
 		if (data.signature) {
@@ -98,7 +98,7 @@ class Engine {
 	 */
 	stop() {
 
-		let me = this;
+		const me = this;
 
 		if (me.WebChannel) me.WebChannel.stop();
 		if (me.SocketChannel) me.SocketChannel.stop();
@@ -143,7 +143,7 @@ class Engine {
 	 * Static instance builder
 	 */
 	static async init(cfg) {
-		let engine = new Engine(cfg);
+		const engine = new Engine(cfg);
 		await engine.init();
 		return engine;
 	}

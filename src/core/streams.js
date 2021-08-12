@@ -13,20 +13,20 @@ class Streams {
 	}
 
 	static async compress(text, encoding = 'gzip') {
-		let byteArray = new TextEncoder().encode(text);
-		let cs = new CompressionStream(encoding);
-		let writer = cs.writable.getWriter();
+		const byteArray = new TextEncoder().encode(text);
+		const cs = new CompressionStream(encoding);
+		const writer = cs.writable.getWriter();
 		writer.write(byteArray);
 		writer.close();
 		return new Response(cs.readable).arrayBuffer();
 	}
 
 	static async decompress(byteArray, encoding = 'gzip') {
-		let cs = new DecompressionStream(encoding);
-		let writer = cs.writable.getWriter();
+		const cs = new DecompressionStream(encoding);
+		const writer = cs.writable.getWriter();
 		writer.write(byteArray);
 		writer.close();
-		let arrayBuffer = await new Response(cs.readable).arrayBuffer();
+		const arrayBuffer = await new Response(cs.readable).arrayBuffer();
 		return new TextDecoder().decode(arrayBuffer);
 	}
 

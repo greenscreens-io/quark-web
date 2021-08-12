@@ -12,7 +12,7 @@ class SocketChannel extends Events {
 
 	constructor() {
 		super();
-		let me = this;
+		const me = this;
 
 		me.queue = new Queue();
 		me.webSocket = null;
@@ -24,7 +24,7 @@ class SocketChannel extends Events {
 	 */
 	async init(engine) {
 
-		let me = this;
+		const me = this;
 		me.stop();
 		me.engine = engine;
 
@@ -39,7 +39,7 @@ class SocketChannel extends Events {
 	 * Close WebSocket channel if available
 	 */
 	stop() {
-		let me = this;
+		const me = this;
 		if (me.webSocket == null) return false;
 		me.webSocket.close();
 		me.webSocket = null;
@@ -53,7 +53,7 @@ class SocketChannel extends Events {
 	 * @param {Object} req
 	 */
 	canEncrypt(req) {
-		let hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
+		const hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
 		return this.engine.Security.isValid && hasArgs;
 	}
 
@@ -65,22 +65,20 @@ class SocketChannel extends Events {
 	 */
 	async onCall(req, callback) {
 
-		let me = this;
+		const me = this;
 		let msg = null;
-		let enc = null;
-		let data = null;
 
-		let isEncrypt = me.canEncrypt(req);
+		const isEncrypt = me.canEncrypt(req);
 
 		me.queue.updateRequest(req, callback);
 
 		// encrypt if supported
 		if (isEncrypt) {
-			enc = await me.engine.Security.encrypt(req.data);
+			const enc = await me.engine.Security.encrypt(req.data);
 			req.data = [enc];
 		}
 
-		data = {
+		const data = {
 			cmd: isEncrypt ? 'enc' : 'data',
 			type: 'ws',
 			data: [req]
@@ -98,12 +96,12 @@ class SocketChannel extends Events {
 
 	async _startSocket(resolve, reject) {
 
-		let me = this;
-		let engine = me.engine;
-		let generator = engine.Generator;
+		const me = this;
+		const engine = me.engine;
+		const generator = engine.Generator;
 
-		let challenge = Date.now();
-		
+		const challenge = Date.now();
+
 		// let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
 		let url = new URL(engine.serviceURL);
 		url.searchParams.append('q', challenge);
@@ -112,7 +110,7 @@ class SocketChannel extends Events {
 		me.webSocket = new WebSocket(url.toString(), ['ws4is']);
 		me.webSocket.binaryType = "arraybuffer";
 
-		let onCall = me.onCall.bind(me);
+		const onCall = me.onCall.bind(me);
 
 		me.webSocket.onopen = (event) => {
 
@@ -164,11 +162,11 @@ class SocketChannel extends Events {
 	 */
 	async _prepareMessage(message) {
 
-		let me = this;
+		const me = this;
 		let obj = null;
 
-		let engine = me.engine;
-		let generator = engine.Generator;
+		const engine = me.engine;
+		const generator = engine.Generator;
 
 		try {
 
@@ -201,12 +199,12 @@ class SocketChannel extends Events {
 	 */
 	async onMessage(obj) {
 
-		let me = this;
+		const me = this;
 		let data = null;
 
-		let engine = me.engine;
-		let generator = engine.Generator;
-		let security = engine.Security;
+		const engine = me.engine;
+		const generator = engine.Generator;
+		const security = engine.Security;
 
 		if (obj.cmd === 'api') {
 			return generator.emit('api', obj.data);
