@@ -289,7 +289,7 @@ class Security {
 		const message = await me.decryptAesMessage(me.aesKEY, iv, data);
 
 		const str = me.decoder.decode(message);
-		const obj = JSON.parse(str);
+		let obj = JSON.parse(str);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			obj = obj.data;
