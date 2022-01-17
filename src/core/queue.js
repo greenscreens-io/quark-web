@@ -52,7 +52,7 @@ class Queue extends Map {
 
 		if (Array.isArray(obj)) {
 			obj.forEach((o) => {
-				let res = me.execute(o);
+				const res = me.execute(o);
 				if (res) unkown.push(res);
 			});
 		} else {
@@ -93,5 +93,5 @@ class Queue extends Map {
 		me.reset();
 
 		return unknown;
-	};
+	}
 }

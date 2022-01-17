@@ -74,14 +74,18 @@ class WebChannel {
 	 */
 	async getAPI(url) {
 
+		const me = this;
 		const service = url;
+		const engine = me.engine; 
 		const id = Date.now();
 
+		const headers = Object.assign({}, engine.headers || {}, {'x-time': id});
+		
 		const resp = await fetch(service, {
 			method: 'get',
-			headers: {
-				'x-time': id
-			}
+			headers: headers
+				
+	
 		});
 
 		const data = await resp.json();
@@ -98,16 +102,19 @@ class WebChannel {
 	 */
 	async fetchCall(url, data) {
 
+		const me = this;
+		const engine = me.engine;
 		const MIME = 'application/json';
-		const HEADERS = {
+		const HEADERS_ = {
 			'Accept': MIME,
 			'Content-Type': MIME
 		};
-
+		
+		const headers = Object.assign({}, engine.headers || {}, HEADERS_);
 		const body = JSON.stringify(data);
 		const req = {
 			method: 'post',
-			headers: HEADERS,
+			headers: headers,
 			body: body
 		};
 		const res = await fetch(url, req);

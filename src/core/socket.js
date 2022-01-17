@@ -34,6 +34,12 @@ class SocketChannel extends Events {
 		});
 
 	}
+	
+	get isOpen() {
+		const me = this;
+		if (me.webSocket == null) return false;
+		return me.webSocket.readyState === me.webSocket.OPEN;
+	}
 
 	/**
 	 * Close WebSocket channel if available
@@ -101,11 +107,15 @@ class SocketChannel extends Events {
 		const generator = engine.Generator;
 
 		const challenge = Date.now();
+		const url = new URL(engine.serviceURL);
 
-		// let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
-		let url = new URL(engine.serviceURL);
-		url.searchParams.append('q', challenge);
-		url.searchParams.append('c', Streams.isAvailable);
+		const headers = Object.assign({}, engine.headers || {});
+		headers.q = challenge;
+		headers.c = Streams.isAvailable;
+		
+		Object.entries(headers || {}).forEach((v) => {
+			url.searchParams.append(v[0], encodeURIComponent(v[1]));			
+		});
 
 		me.webSocket = new WebSocket(url.toString(), ['ws4is']);
 		me.webSocket.binaryType = "arraybuffer";
@@ -154,6 +164,14 @@ class SocketChannel extends Events {
 
 	}
 
+	_isJsonObj(msg) {
+		return msg.startsWith('{') && msg.endsWith('}');
+	}
+	
+	_isJsonArray(msg) {
+		return msg.startsWith('[') && msg.endsWith(']');
+	}
+	
 	/**
 	 * Parse and prepare received message for processing
 	 *
@@ -163,26 +181,26 @@ class SocketChannel extends Events {
 	async _prepareMessage(message) {
 
 		const me = this;
-		let obj = null;
-
 		const engine = me.engine;
 		const generator = engine.Generator;
-
+		
+		let obj = null;
+		let text = message;
+		
 		try {
 
 			if (message instanceof ArrayBuffer) {
-				let text = await Streams.decompress(message);
+				text = await Streams.decompress(message);
+			}
+
+			const msg = text.trim();
+			const isJSON = me._isJsonObj(msg) || me._isJsonArray(msg); 
+
+			if (isJSON) {
 				obj = JSON.parse(text);
-			}
-
-			if (typeof message === 'string') {
-				obj = JSON.parse(message);
-			}
-
-			if (obj) {
-				me.onMessage(obj);
+				me.onMessage(obj);				
 			} else {
-				generator.emit('error', event);
+				generator.emit('raw', text);	
 			}
 
 		} catch (e) {
@@ -227,7 +245,7 @@ class SocketChannel extends Events {
 		}
 
 		if (data) {
-			let unknown = me.queue.process(data);
+			const unknown = me.queue.process(data);
 			unknown.forEach((obj) => me.emit('message', obj));
 		} else {
 			me.emit('message', data);
@@ -235,4 +253,4 @@ class SocketChannel extends Events {
 
 	}
 
-};
+}

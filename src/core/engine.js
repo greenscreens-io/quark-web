@@ -42,6 +42,8 @@ class Engine {
 		me.cfg = cfg;
 		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
 
+		me.headers = cfg.headers || {};
+
 		me.isWebChannel = cfg.service.indexOf('http') === 0;
 		me.isSockChannel = cfg.service.indexOf('ws') === 0;
 
@@ -122,7 +124,9 @@ class Engine {
 	 * Check if engine is active
 	 */
 	get isActive() {
-		return this.api && this.Security;
+		const me = this;
+		if (me.SocketChannel && !me.SocketChannel.isOpen) return false; 
+		return me.api && me.Security ? true : false;
 	}
 
 	/*

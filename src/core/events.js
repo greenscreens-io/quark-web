@@ -77,7 +77,7 @@ class Events {
 			const _off = (inListener) => {
 				const listeners = inListener.get(label);
 				if (listeners) {
-					inListener.set(label, listeners.filter((value) => !(value === callback)));
+					inListener.set(label, listeners.filter((value) => (value !== callback)));
 				}
 			};
 			_off(me.listeners);
@@ -98,7 +98,7 @@ class Events {
 	// trigger the event with the label
 	emit(label, ...args) {
 		const me = this;
-		let res = false;
+		
 		me.triggers.set(label, ...args); // save all triggerd labels for onready and onceready
 		const _trigger = (inListener, label, ...args) => {
 			const listeners = inListener.get(label);
@@ -106,11 +106,11 @@ class Events {
 				listeners.forEach((listener) => {
 					listener(...args);
 				});
-				res = true;
+				return true;
 			}
 		};
-		_trigger(me.onceListeners, label, ...args);
-		_trigger(me.listeners, label, ...args);
+		let res = _trigger(me.onceListeners, label, ...args);
+		res = res || _trigger(me.listeners, label, ...args);
 		me.onceListeners.delete(label); // callback for once executed, so delete it.
 		return res;
 	}

@@ -1,4 +1,65 @@
-/* Quark Engine v2.3.0 (c) Green Screens Ltd. */
+/*
+ * Copyright (C) 2015, 2020  Green Screens Ltd.
+ */
+
+/*
+ * Simulate NoedJS Buffer, simple
+ */
+class Buffer {
+
+	static from(value, type) {
+		switch (type) {
+			case 'base64':
+				return Buffer.fromBase64(value);
+			case 'hex':
+				return Buffer.fromHex(value);
+		}
+		return value;
+	}
+
+	static to(value, type) {
+		switch (type) {
+			case 'base64':
+				return Buffer.toBase64(value);
+			case 'hex':
+				return Buffer.toHex(value);
+		}
+		return value;
+	}
+
+	static fromHex(value) {
+
+		let arry = [];
+
+		for (let i = 0; i < value.length; i += 2) {
+			arry.push(parseInt("0x" + value.substr(i, 2), 16));
+		}
+
+		return new Uint8Array(arry);
+	}
+
+	static fromBase64(value) {
+
+		const strbin = atob(value);
+		const buffer = new ArrayBuffer(strbin.length);
+		const bufView = new Uint8Array(buffer);
+
+		for (let i = 0, strLen = strbin.length; i < strLen; i++) {
+			bufView[i] = strbin.charCodeAt(i);
+		}
+
+		return bufView;
+	}
+
+	static toHex(buffer) {
+		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+	}
+
+	static toBase64(buffer) {
+		return btoa(new Uint8Array(buffer));
+	}
+
+}
 
 /*
  * Copyright (C) 2015, 2020  Green Screens Ltd.
@@ -18,10 +79,9 @@ obj.emit('', ...args)
 class Events {
 
 	constructor() {
-		const me = this;
-		me.listeners = new Map();
-		me.onceListeners = new Map();
-		me.triggers = new Map();
+		this.listeners = new Map();
+		this.onceListeners = new Map();
+		this.triggers = new Map();
 	}
 
 	// help-function for onReady and onceReady
@@ -76,10 +136,10 @@ class Events {
 			me.removeAllListeners(label);
 		} else {
 			// remove listeners only with match callbackfunctions
-			const _off = (inListener) => {
+			let _off = (inListener) => {
 				const listeners = inListener.get(label);
 				if (listeners) {
-					inListener.set(label, listeners.filter((value) => !(value === callback)));
+					inListener.set(label, listeners.filter((value) => (value !== callback)));
 				}
 			};
 			_off(me.listeners);
@@ -99,8 +159,7 @@ class Events {
 
 	// trigger the event with the label
 	emit(label, ...args) {
-		const me = this;
-		let res = false;
+		const me = this;		
 		me.triggers.set(label, ...args); // save all triggerd labels for onready and onceready
 		const _trigger = (inListener, label, ...args) => {
 			const listeners = inListener.get(label);
@@ -108,77 +167,14 @@ class Events {
 				listeners.forEach((listener) => {
 					listener(...args);
 				});
-				res = true;
+				return true;
 			}
 		};
-		_trigger(me.onceListeners, label, ...args);
-		_trigger(me.listeners, label, ...args);
+		let res = _trigger(me.onceListeners, label, ...args);
+		res = res || _trigger(me.listeners, label, ...args);
 		me.onceListeners.delete(label); // callback for once executed, so delete it.
 		return res;
 	}
-}
-
-/*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
- */
-
-/*
- * Simulate NoedJS Buffer, simple
- */
-class Buffer {
-
-	static from(value, type) {
-		switch (type) {
-			case 'base64':
-				return Buffer.fromBase64(value);
-			case 'hex':
-				return Buffer.fromHex(value);
-		}
-		return value;
-	}
-
-	static to(value, type) {
-		switch (type) {
-			case 'base64':
-				return Buffer.toBase64(value);
-			case 'hex':
-				return Buffer.toHex(value);
-		}
-		return value;
-	}
-
-	static fromHex(value) {
-
-		const arry = [];
-
-		for (let i = 0; i < value.length; i += 2) {
-			arry.push(parseInt("0x" + value.substr(i, 2), 16));
-		}
-
-		return new Uint8Array(arry);
-	}
-
-	static fromBase64(value) {
-
-		const strbin = atob(value);
-		const buffer = new ArrayBuffer(strbin.length);
-		const bufView = new Uint8Array(buffer);
-
-		for (let i = 0, strLen = strbin.length; i < strLen; i++) {
-			bufView[i] = strbin.charCodeAt(i);
-		}
-
-		return bufView;
-	}
-
-	static toHex(buffer) {
-		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-	}
-
-	static toBase64(buffer) {
-		return btoa(new Uint8Array(buffer));
-	}
-
 }
 
 /*
@@ -235,7 +231,7 @@ class Queue extends Map {
 
 		if (Array.isArray(obj)) {
 			obj.forEach((o) => {
-				let res = me.execute(o);
+				const res = me.execute(o);
 				if (res) unkown.push(res);
 			});
 		} else {
@@ -276,7 +272,7 @@ class Queue extends Map {
 		me.reset();
 
 		return unknown;
-	};
+	}
 }
 
 /*
@@ -455,7 +451,7 @@ class Security {
 	async encryptRSA(data) {
 
 		const me = this;
-		const encoded = data;
+		let encoded = data;
 
 		if (typeof data === 'string') {
 			encoded = me.encoder.encode(data);
@@ -604,7 +600,7 @@ class Security {
 		const message = await me.decryptAesMessage(me.aesKEY, iv, data);
 
 		const str = me.decoder.decode(message);
-		let obj = JSON.parse(str);
+		const obj = JSON.parse(str);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			obj = obj.data;
@@ -732,6 +728,7 @@ class Generator extends Events {
 		action = tree[api.action];
 
 		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v));
+
 	}
 
 	/**
@@ -800,18 +797,20 @@ class Generator extends Events {
 
 		function fn() {
 
-			const args = Array.prototype.slice.call(arguments);
+			let args, req, promise = null;
 
-			const req = {
+			args = Array.prototype.slice.call(arguments);
+
+			req = {
 				"namespace": prop.n,
 				"action": prop.c,
 				"method": prop.m,
 				"e": prop.e,
 				"data": args,
-				"ts": Date.now()
+				"ts":Date.now()
 			};
 
-			const promise = new Promise((resolve, reject) => {
+			promise = new Promise((resolve, reject) => {
 				me.emit('call', req, (err, obj) => {
 					me._onResponse(err, obj, prop, resolve, reject);
 				});
@@ -933,14 +932,16 @@ class WebChannel {
 	 */
 	async getAPI(url) {
 
+		const me = this;
 		const service = url;
+		const engine = me.engine; 
 		const id = Date.now();
 
+		const headers = Object.assign({}, engine.headers || {}, {'x-time': id});
+		
 		const resp = await fetch(service, {
 			method: 'get',
-			headers: {
-				'x-time': id
-			}
+			headers: headers
 		});
 
 		const data = await resp.json();
@@ -957,16 +958,19 @@ class WebChannel {
 	 */
 	async fetchCall(url, data) {
 
+		const me = this;
+		const engine = me.engine;
 		const MIME = 'application/json';
-		const HEADERS = {
+		const HEADERS_ = {
 			'Accept': MIME,
 			'Content-Type': MIME
 		};
-
+		
+		const headers = Object.assign({}, engine.headers || {}, HEADERS_);
 		const body = JSON.stringify(data);
 		const req = {
 			method: 'post',
-			headers: HEADERS,
+			headers: headers,
 			body: body
 		};
 		const res = await fetch(url, req);
@@ -1060,12 +1064,18 @@ class SocketChannel extends Events {
 		});
 
 	}
+	
+	get isOpen() {
+		const me = this;
+		if (me.webSocket == null) return false;
+		return me.webSocket.readyState === me.webSocket.OPEN;		
+	}
 
 	/**
 	 * Close WebSocket channel if available
 	 */
 	stop() {
-		const me = this;
+		let me = this;
 		if (me.webSocket == null) return false;
 		me.webSocket.close();
 		me.webSocket = null;
@@ -1093,6 +1103,8 @@ class SocketChannel extends Events {
 
 		const me = this;
 		let msg = null;
+		let enc = null;
+		let data = null;
 
 		const isEncrypt = me.canEncrypt(req);
 
@@ -1100,11 +1112,11 @@ class SocketChannel extends Events {
 
 		// encrypt if supported
 		if (isEncrypt) {
-			const enc = await me.engine.Security.encrypt(req.data);
+			enc = await me.engine.Security.encrypt(req.data);
 			req.data = [enc];
 		}
 
-		const data = {
+		data = {
 			cmd: isEncrypt ? 'enc' : 'data',
 			type: 'ws',
 			data: [req]
@@ -1127,11 +1139,15 @@ class SocketChannel extends Events {
 		const generator = engine.Generator;
 
 		const challenge = Date.now();
-
-		// let url = `${engine.serviceURL}?q=${challenge}&c=${Streams.isAvailable}`;
-		let url = new URL(engine.serviceURL);
-		url.searchParams.append('q', challenge);
-		url.searchParams.append('c', Streams.isAvailable);
+		const url = new URL(engine.serviceURL);
+		
+		let headers = Object.assign({}, engine.headers || {});
+		headers.q = challenge;
+		headers.c = Streams.isAvailable;
+		
+		Object.entries(headers || {}).forEach((v) => {
+			url.searchParams.append(v[0], encodeURIComponent(v[1]));			
+		});
 
 		me.webSocket = new WebSocket(url.toString(), ['ws4is']);
 		me.webSocket.binaryType = "arraybuffer";
@@ -1180,6 +1196,14 @@ class SocketChannel extends Events {
 
 	}
 
+	_isJsonObj(msg) {
+		return msg.startsWith('{') && msg.endsWith('}');
+	}
+	
+	_isJsonArray(msg) {
+		return msg.startsWith('[') && msg.endsWith(']');
+	}
+	
 	/**
 	 * Parse and prepare received message for processing
 	 *
@@ -1189,28 +1213,28 @@ class SocketChannel extends Events {
 	async _prepareMessage(message) {
 
 		const me = this;
-		let obj = null;
-
 		const engine = me.engine;
 		const generator = engine.Generator;
-
+		
+		let obj = null;
+		let text = message;
+		
 		try {
 
 			if (message instanceof ArrayBuffer) {
-				let text = await Streams.decompress(message);
+				text = await Streams.decompress(message);
+			}
+
+			const msg = text.trim();
+			const isJSON = me._isJsonObj(msg) || me._isJsonArray(msg); 
+			if (isJSON) {
 				obj = JSON.parse(text);
-			}
-
-			if (typeof message === 'string') {
-				obj = JSON.parse(message);
-			}
-
-			if (obj) {
-				me.onMessage(obj);
+				me.onMessage(obj);				
 			} else {
-				generator.emit('error', event);
+				generator.emit('raw', text);	
 			}
-
+			
+			
 		} catch (e) {
 			generator.emit('error', e);
 		}
@@ -1253,7 +1277,7 @@ class SocketChannel extends Events {
 		}
 
 		if (data) {
-			let unknown = me.queue.process(data);
+			const unknown = me.queue.process(data);
 			unknown.forEach((obj) => me.emit('message', obj));
 		} else {
 			me.emit('message', data);
@@ -1261,7 +1285,7 @@ class SocketChannel extends Events {
 
 	}
 
-};
+}
 
 /*
  * Copyright (C) 2015, 2020  Green Screens Ltd.
@@ -1306,6 +1330,8 @@ class Engine {
 
 		me.cfg = cfg;
 		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
+
+		me.headers = cfg.headers || {};
 
 		me.isWebChannel = cfg.service.indexOf('http') === 0;
 		me.isSockChannel = cfg.service.indexOf('ws') === 0;
@@ -1387,7 +1413,9 @@ class Engine {
 	 * Check if engine is active
 	 */
 	get isActive() {
-		return this.api && this.Security;
+		const me = this;
+		if (me.SocketChannel && !me.SocketChannel.isOpen) return false; 
+		return me.api && me.Security ? true : false;
 	}
 
 	/*
@@ -1413,4 +1441,3 @@ class Engine {
 		return engine;
 	}
 }
-

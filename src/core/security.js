@@ -140,7 +140,7 @@ class Security {
 	async encryptRSA(data) {
 
 		const me = this;
-		const encoded = data;
+		let encoded = data;
 
 		if (typeof data === 'string') {
 			encoded = me.encoder.encode(data);
@@ -289,7 +289,7 @@ class Security {
 		const message = await me.decryptAesMessage(me.aesKEY, iv, data);
 
 		const str = me.decoder.decode(message);
-		let obj = JSON.parse(str);
+		const obj = JSON.parse(str);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			obj = obj.data;

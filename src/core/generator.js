@@ -109,6 +109,7 @@ class Generator extends Events {
 		action = tree[api.action];
 
 		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v));
+
 	}
 
 	/**
