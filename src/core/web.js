@@ -83,9 +83,8 @@ class WebChannel {
 		
 		const resp = await fetch(service, {
 			method: 'get',
-			headers: headers
-				
-	
+			headers: headers,
+			credentials: 'same-origin'
 		});
 
 		const data = await resp.json();

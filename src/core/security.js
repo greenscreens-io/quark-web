@@ -292,7 +292,7 @@ class Security {
 		const obj = JSON.parse(str);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
-			obj = obj.data;
+			return obj.data;
 		}
 
 		return obj;
