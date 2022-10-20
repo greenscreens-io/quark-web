@@ -9,9 +9,10 @@
  */
 class Generator extends Events {
 
-	constructor() {
+	constructor(id) {
 		super();
 		this._model = {};
+		this.id = id;
 	}
 
 	/**
@@ -32,13 +33,21 @@ class Generator extends Events {
 		me.detach();
 	}
 
-	/**
-	 * Detach generated API namespace from global
-	 */
+	_cleanup(obj, id) {
+		for (let k in obj) {
+			let el = obj[k];
+			if (typeof el === "object") {
+				if(this._cleanup(el, id)) obj[k] = null;
+			} else if(el._id_ === id) {
+				obj[k] = null;
+			}
+		}
+		return Object.values(obj).filter(o => o != null).length === 0;
+	}
+	
 	detach() {
 		const me = this;
-		const root = typeof global === 'undefined' ? self : global;
-		Object.keys(me._model).forEach(v => root[v] = null);
+		me._cleanup(me._model, me.id);
 		me._model = {};
 	}
 
@@ -46,9 +55,8 @@ class Generator extends Events {
 	 * Attach generated API namespace to global
 	 */
 	attach() {
-		const me = this;
-		const root = typeof global === 'undefined' ? self : global;
-		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
+		//const me = this;
+		//Object.entries(me._model).forEach(v => globalThis[v[0]] = v[1]);
 	}
 
 	/**
@@ -108,7 +116,7 @@ class Generator extends Events {
 		}
 		action = tree[api.action];
 
-		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v));
+		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v, me.id));
 
 	}
 
@@ -124,18 +132,17 @@ class Generator extends Events {
 	_buildNamespace(namespace) {
 
 		const me = this;
-		let tmp = null;
+
+		let tmp = globalThis;
+		let tmp2 = me._model;
 
 		namespace.split('.').every(v => {
 
-			if (!tmp) {
-				if (!me._model[v]) me._model[v] = {};
-				tmp = me._model[v];
-			} else {
-				if (!tmp[v]) tmp[v] = {};
-				// Object.freeze(tmp);
-				tmp = tmp[v];
-			}
+			if (!tmp[v]) tmp[v] = {};
+			tmp = tmp[v];
+			
+			if (!tmp2[v]) tmp2[v] = tmp;
+			tmp2 = tmp;
 
 			return true;
 		});
@@ -151,7 +158,7 @@ class Generator extends Events {
 	 * @param {String} instance
 	 * @param {Array} api
 	 */
-	_buildMethod(namespace, action, instance, api) {
+	 _buildMethod(namespace, action, instance, api, id) {
 
 		const enc = api.encrypt === false ? false : true;
 		const cfg = {
@@ -159,10 +166,12 @@ class Generator extends Events {
 			c: action,
 			m: api.name,
 			l: api.len,
-			e: enc
+			e: enc,
+			i:id 
 		};
 
 		instance[api.name] = this._apiFn(cfg);
+		instance[api.name]._id_ = id;
 		// Object.freeze(instance[api.name]);
 	}
 
@@ -184,6 +193,7 @@ class Generator extends Events {
 				"namespace": prop.n,
 				"action": prop.c,
 				"method": prop.m,
+				"id": prop.i,
 				"e": prop.e,
 				"data": args,
 				"ts": Date.now()

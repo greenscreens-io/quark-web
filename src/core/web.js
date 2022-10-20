@@ -56,6 +56,8 @@ class WebChannel {
 		let o = null;
 		let e = null;
 
+		if (req.id !== me.engine.id) return;
+
 		try {
 			o = await me.onCall(me.engine, req);
 		} catch (err) {
@@ -109,14 +111,20 @@ class WebChannel {
 			'Content-Type': MIME
 		};
 		
+		const service = new URL(url);
 		const headers = Object.assign({}, engine.headers || {}, HEADERS_);
-		const body = JSON.stringify(data);
+		const querys = Object.assign({}, engine.querys || {});
+		const payload = Object.assign({}, engine.querys || {}, data || {});
+		const body = JSON.stringify(payload);
 		const req = {
 			method: 'post',
 			headers: headers,
 			body: body
 		};
-		const res = await fetch(url, req);
+		Object.entries(querys || {}).forEach((v) => {
+			service.searchParams.append(v[0], encodeURIComponent(v[1]));			
+		});
+		const res = await fetch(service.toString(), req);
 		const json = await res.json();
 
 		return json;

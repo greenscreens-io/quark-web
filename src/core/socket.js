@@ -74,6 +74,8 @@ class SocketChannel extends Events {
 		const me = this;
 		let msg = null;
 
+		if (req.id !== me.engine.id) return;
+
 		const isEncrypt = me.canEncrypt(req);
 
 		me.queue.updateRequest(req, callback);
@@ -81,7 +83,8 @@ class SocketChannel extends Events {
 		// encrypt if supported
 		if (isEncrypt) {
 			const enc = await me.engine.Security.encrypt(req.data);
-			req.data = [enc];
+			const payload = Object.assign({}, me.engine.querys || {}, enc || {});
+			req.data = [payload];
 		}
 
 		const data = {
@@ -110,10 +113,11 @@ class SocketChannel extends Events {
 		const url = new URL(engine.serviceURL);
 
 		const headers = Object.assign({}, engine.headers || {});
-		headers.q = challenge;
-		headers.c = Streams.isAvailable;
+		const querys = Object.assign({}, engine.querys || {});
+		querys.q = challenge;
+		querys.c = Streams.isAvailable;
 		
-		Object.entries(headers || {}).forEach((v) => {
+		Object.entries(querys || {}).forEach((v) => {
 			url.searchParams.append(v[0], encodeURIComponent(v[1]));			
 		});
 

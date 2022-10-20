@@ -1,65 +1,4 @@
-/*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
- */
-
-/*
- * Simulate NoedJS Buffer, simple
- */
-class Buffer {
-
-	static from(value, type) {
-		switch (type) {
-			case 'base64':
-				return Buffer.fromBase64(value);
-			case 'hex':
-				return Buffer.fromHex(value);
-		}
-		return value;
-	}
-
-	static to(value, type) {
-		switch (type) {
-			case 'base64':
-				return Buffer.toBase64(value);
-			case 'hex':
-				return Buffer.toHex(value);
-		}
-		return value;
-	}
-
-	static fromHex(value) {
-
-		let arry = [];
-
-		for (let i = 0; i < value.length; i += 2) {
-			arry.push(parseInt("0x" + value.substr(i, 2), 16));
-		}
-
-		return new Uint8Array(arry);
-	}
-
-	static fromBase64(value) {
-
-		const strbin = atob(value);
-		const buffer = new ArrayBuffer(strbin.length);
-		const bufView = new Uint8Array(buffer);
-
-		for (let i = 0, strLen = strbin.length; i < strLen; i++) {
-			bufView[i] = strbin.charCodeAt(i);
-		}
-
-		return bufView;
-	}
-
-	static toHex(buffer) {
-		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-	}
-
-	static toBase64(buffer) {
-		return btoa(new Uint8Array(buffer));
-	}
-
-}
+/* Quark Engine v2.3.0 (c) Green Screens Ltd. */
 
 /*
  * Copyright (C) 2015, 2020  Green Screens Ltd.
@@ -79,9 +18,10 @@ obj.emit('', ...args)
 class Events {
 
 	constructor() {
-		this.listeners = new Map();
-		this.onceListeners = new Map();
-		this.triggers = new Map();
+		const me = this;
+		me.listeners = new Map();
+		me.onceListeners = new Map();
+		me.triggers = new Map();
 	}
 
 	// help-function for onReady and onceReady
@@ -136,7 +76,7 @@ class Events {
 			me.removeAllListeners(label);
 		} else {
 			// remove listeners only with match callbackfunctions
-			let _off = (inListener) => {
+			const _off = (inListener) => {
 				const listeners = inListener.get(label);
 				if (listeners) {
 					inListener.set(label, listeners.filter((value) => (value !== callback)));
@@ -159,7 +99,8 @@ class Events {
 
 	// trigger the event with the label
 	emit(label, ...args) {
-		const me = this;		
+		const me = this;
+		
 		me.triggers.set(label, ...args); // save all triggerd labels for onready and onceready
 		const _trigger = (inListener, label, ...args) => {
 			const listeners = inListener.get(label);
@@ -175,6 +116,69 @@ class Events {
 		me.onceListeners.delete(label); // callback for once executed, so delete it.
 		return res;
 	}
+}
+
+/*
+ * Copyright (C) 2015, 2020  Green Screens Ltd.
+ */
+
+/*
+ * Simulate NoedJS Buffer, simple
+ */
+class Buffer {
+
+	static from(value, type) {
+		switch (type) {
+			case 'base64':
+				return Buffer.fromBase64(value);
+			case 'hex':
+				return Buffer.fromHex(value);
+		}
+		return value;
+	}
+
+	static to(value, type) {
+		switch (type) {
+			case 'base64':
+				return Buffer.toBase64(value);
+			case 'hex':
+				return Buffer.toHex(value);
+		}
+		return value;
+	}
+
+	static fromHex(value) {
+
+		const arry = [];
+
+		for (let i = 0; i < value.length; i += 2) {
+			arry.push(parseInt("0x" + value.substr(i, 2), 16));
+		}
+
+		return new Uint8Array(arry);
+	}
+
+	static fromBase64(value) {
+
+		const strbin = atob(value);
+		const buffer = new ArrayBuffer(strbin.length);
+		const bufView = new Uint8Array(buffer);
+
+		for (let i = 0, strLen = strbin.length; i < strLen; i++) {
+			bufView[i] = strbin.charCodeAt(i);
+		}
+
+		return bufView;
+	}
+
+	static toHex(buffer) {
+		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+	}
+
+	static toBase64(buffer) {
+		return btoa(new Uint8Array(buffer));
+	}
+
 }
 
 /*
@@ -628,9 +632,10 @@ class Security {
  */
 class Generator extends Events {
 
-	constructor() {
+	constructor(id) {
 		super();
 		this._model = {};
+		this.id = id;
 	}
 
 	/**
@@ -651,13 +656,21 @@ class Generator extends Events {
 		me.detach();
 	}
 
-	/**
-	 * Detach generated API namespace from global
-	 */
+	_cleanup(obj, id) {
+		for (let k in obj) {
+			let el = obj[k];
+			if (typeof el === "object") {
+				if(this._cleanup(el, id)) obj[k] = null;
+			} else if(el._id_ === id) {
+				obj[k] = null;
+			}
+		}
+		return Object.values(obj).filter(o => o != null).length === 0;
+	}
+	
 	detach() {
 		const me = this;
-		const root = typeof global === 'undefined' ? self : global;
-		Object.keys(me._model).forEach(v => root[v] = null);
+		me._cleanup(me._model, me.id);
 		me._model = {};
 	}
 
@@ -665,9 +678,8 @@ class Generator extends Events {
 	 * Attach generated API namespace to global
 	 */
 	attach() {
-		const me = this;
-		const root = typeof global === 'undefined' ? self : global;
-		Object.entries(me._model).forEach(v => root[v[0]] = v[1]);
+		//const me = this;
+		//Object.entries(me._model).forEach(v => globalThis[v[0]] = v[1]);
 	}
 
 	/**
@@ -727,7 +739,7 @@ class Generator extends Events {
 		}
 		action = tree[api.action];
 
-		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v));
+		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v, me.id));
 
 	}
 
@@ -743,18 +755,17 @@ class Generator extends Events {
 	_buildNamespace(namespace) {
 
 		const me = this;
-		let tmp = null;
+
+		let tmp = globalThis;
+		let tmp2 = me._model;
 
 		namespace.split('.').every(v => {
 
-			if (!tmp) {
-				if (!me._model[v]) me._model[v] = {};
-				tmp = me._model[v];
-			} else {
-				if (!tmp[v]) tmp[v] = {};
-				// Object.freeze(tmp);
-				tmp = tmp[v];
-			}
+			if (!tmp[v]) tmp[v] = {};
+			tmp = tmp[v];
+			
+			if (!tmp2[v]) tmp2[v] = tmp;
+			tmp2 = tmp;
 
 			return true;
 		});
@@ -770,7 +781,7 @@ class Generator extends Events {
 	 * @param {String} instance
 	 * @param {Array} api
 	 */
-	_buildMethod(namespace, action, instance, api) {
+	 _buildMethod(namespace, action, instance, api, id) {
 
 		const enc = api.encrypt === false ? false : true;
 		const cfg = {
@@ -778,10 +789,12 @@ class Generator extends Events {
 			c: action,
 			m: api.name,
 			l: api.len,
-			e: enc
+			e: enc,
+			i:id 
 		};
 
 		instance[api.name] = this._apiFn(cfg);
+		instance[api.name]._id_ = id;
 		// Object.freeze(instance[api.name]);
 	}
 
@@ -797,20 +810,19 @@ class Generator extends Events {
 
 		function fn() {
 
-			let args, req, promise = null;
+			const args = Array.prototype.slice.call(arguments);
 
-			args = Array.prototype.slice.call(arguments);
-
-			req = {
+			const req = {
 				"namespace": prop.n,
 				"action": prop.c,
 				"method": prop.m,
+				"id": prop.i,
 				"e": prop.e,
 				"data": args,
-				"ts":Date.now()
+				"ts": Date.now()
 			};
 
-			promise = new Promise((resolve, reject) => {
+			const promise = new Promise((resolve, reject) => {
 				me.emit('call', req, (err, obj) => {
 					me._onResponse(err, obj, prop, resolve, reject);
 				});
@@ -914,6 +926,8 @@ class WebChannel {
 		let o = null;
 		let e = null;
 
+		if (req.id !== me.engine.id) return;
+
 		try {
 			o = await me.onCall(me.engine, req);
 		} catch (err) {
@@ -941,7 +955,8 @@ class WebChannel {
 		
 		const resp = await fetch(service, {
 			method: 'get',
-			headers: headers
+			headers: headers,
+			credentials: 'same-origin'
 		});
 
 		const data = await resp.json();
@@ -966,14 +981,20 @@ class WebChannel {
 			'Content-Type': MIME
 		};
 		
+		const service = new URL(url);
 		const headers = Object.assign({}, engine.headers || {}, HEADERS_);
-		const body = JSON.stringify(data);
+		const querys = Object.assign({}, engine.querys || {});
+		const payload = Object.assign({}, engine.querys || {}, data || {});
+		const body = JSON.stringify(payload);
 		const req = {
 			method: 'post',
 			headers: headers,
 			body: body
 		};
-		const res = await fetch(url, req);
+		Object.entries(querys || {}).forEach((v) => {
+			service.searchParams.append(v[0], encodeURIComponent(v[1]));			
+		});
+		const res = await fetch(service.toString(), req);
 		const json = await res.json();
 
 		return json;
@@ -1068,14 +1089,14 @@ class SocketChannel extends Events {
 	get isOpen() {
 		const me = this;
 		if (me.webSocket == null) return false;
-		return me.webSocket.readyState === me.webSocket.OPEN;		
+		return me.webSocket.readyState === me.webSocket.OPEN;
 	}
 
 	/**
 	 * Close WebSocket channel if available
 	 */
 	stop() {
-		let me = this;
+		const me = this;
 		if (me.webSocket == null) return false;
 		me.webSocket.close();
 		me.webSocket = null;
@@ -1103,8 +1124,8 @@ class SocketChannel extends Events {
 
 		const me = this;
 		let msg = null;
-		let enc = null;
-		let data = null;
+
+		if (req.id !== me.engine.id) return;
 
 		const isEncrypt = me.canEncrypt(req);
 
@@ -1112,11 +1133,12 @@ class SocketChannel extends Events {
 
 		// encrypt if supported
 		if (isEncrypt) {
-			enc = await me.engine.Security.encrypt(req.data);
-			req.data = [enc];
+			const enc = await me.engine.Security.encrypt(req.data);
+			const payload = Object.assign({}, me.engine.querys || {}, enc || {});
+			req.data = [payload];
 		}
 
-		data = {
+		const data = {
 			cmd: isEncrypt ? 'enc' : 'data',
 			type: 'ws',
 			data: [req]
@@ -1140,12 +1162,13 @@ class SocketChannel extends Events {
 
 		const challenge = Date.now();
 		const url = new URL(engine.serviceURL);
+
+		const headers = Object.assign({}, engine.headers || {});
+		const querys = Object.assign({}, engine.querys || {});
+		querys.q = challenge;
+		querys.c = Streams.isAvailable;
 		
-		let headers = Object.assign({}, engine.headers || {});
-		headers.q = challenge;
-		headers.c = Streams.isAvailable;
-		
-		Object.entries(headers || {}).forEach((v) => {
+		Object.entries(querys || {}).forEach((v) => {
 			url.searchParams.append(v[0], encodeURIComponent(v[1]));			
 		});
 
@@ -1227,14 +1250,14 @@ class SocketChannel extends Events {
 
 			const msg = text.trim();
 			const isJSON = me._isJsonObj(msg) || me._isJsonArray(msg); 
+
 			if (isJSON) {
 				obj = JSON.parse(text);
 				me.onMessage(obj);				
 			} else {
 				generator.emit('raw', text);	
 			}
-			
-			
+
 		} catch (e) {
 			generator.emit('error', e);
 		}
@@ -1327,11 +1350,13 @@ class Engine {
 		me.Generator = null;
 		me.WebChannel = null;
 		me.SocketChannel = null;
+		me.id = Date.now();
 
 		me.cfg = cfg;
 		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
 
 		me.headers = cfg.headers || {};
+		me.querys = cfg.querys || {};
 
 		me.isWebChannel = cfg.service.indexOf('http') === 0;
 		me.isSockChannel = cfg.service.indexOf('ws') === 0;
@@ -1351,7 +1376,7 @@ class Engine {
 		if (me.isActive) return;
 
 		me.Security = new Security();
-		me.Generator = new Generator();
+		me.Generator = new Generator(me.id);
 
 		if (me.isWebChannel || me.isWSAPI == false) {
 			me.WebChannel = new WebChannel();
@@ -1441,3 +1466,4 @@ class Engine {
 		return engine;
 	}
 }
+
