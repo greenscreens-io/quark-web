@@ -1,12 +1,14 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
 /**
  * Web Requester Engine
  * Used to call remote services through HTTP/S
  */
-class WebChannel {
+export default class WebChannel {
+
+	#engine = null;
 
 	/**
 	 * If http/s used in url, make standard fetch call to the defined service
@@ -15,17 +17,17 @@ class WebChannel {
 
 		const me = this;
 
-		if (me.engine) me.stop();
+		if (me.#engine) me.stop();
 
-		me.engine = engine;
+		me.#engine = engine;
 		const generator = engine.Generator;
 
-		const data = await me.getAPI(engine.apiURL);
+		const data = await me.#getAPI(engine.apiURL);
 		await engine.registerAPI(data);
 
 		if (engine.isSockChannel) return;
 
-		generator.on('call', me.onRequest.bind(me));
+		generator.on('call', me.#onRequest.bind(me));
 
 	}
 
@@ -35,14 +37,17 @@ class WebChannel {
 	stop() {
 
 		const me = this;
-		const engine = me.engine;
-		me.engine = null;
+		const engine = me.#engine;
+		me.#engine = null;
 
 		engine.Generator.off('call');
-		if (!engine.isSockChannel) {
+		if (engine.isSockChannel) return;
+		try {
 			fetch(engine.serviceURL, {
 				method: 'delete'
 			});
+		} catch (e) {
+			console.log(e);
 		}
 	}
 
@@ -50,16 +55,16 @@ class WebChannel {
 	 * Callback for API call request,
 	 * here we make remote API call
 	 */
-	async onRequest(req, callback) {
+	async #onRequest(req, callback) {
 
 		const me = this;
 		let o = null;
 		let e = null;
 
-		if (req.id !== me.engine.id) return;
+		if (req.id !== me.#engine.id) return;
 
 		try {
-			o = await me.onCall(me.engine, req);
+			o = await me.#onCall(me.#engine, req);
 		} catch (err) {
 			e = err;
 		}
@@ -74,15 +79,15 @@ class WebChannel {
 	 * @param {String} url
 	 * 		  URL Address for API service definitions
 	 */
-	async getAPI(url) {
+	async #getAPI(url) {
 
 		const me = this;
 		const service = url;
-		const engine = me.engine; 
+		const engine = me.#engine;
 		const id = Date.now();
 
-		const headers = Object.assign({}, engine.headers || {}, {'x-time': id});
-		
+		const headers = Object.assign({}, engine.headers || {}, { 'x-time': id });
+
 		const resp = await fetch(service, {
 			method: 'get',
 			headers: headers,
@@ -101,16 +106,16 @@ class WebChannel {
 	/**
 	 * Send data to server with http/s channel
 	 */
-	async fetchCall(url, data) {
+	async #fetchCall(url, data) {
 
 		const me = this;
-		const engine = me.engine;
+		const engine = me.#engine;
 		const MIME = 'application/json';
 		const HEADERS_ = {
 			'Accept': MIME,
 			'Content-Type': MIME
 		};
-		
+
 		const service = new URL(url);
 		const headers = Object.assign({}, engine.headers || {}, HEADERS_);
 		const querys = Object.assign({}, engine.querys || {});
@@ -122,7 +127,7 @@ class WebChannel {
 			body: body
 		};
 		Object.entries(querys || {}).forEach((v) => {
-			service.searchParams.append(v[0], encodeURIComponent(v[1]));			
+			service.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
 		const res = await fetch(service.toString(), req);
 		const json = await res.json();
@@ -140,7 +145,7 @@ class WebChannel {
 	 * @param {Object} req
 	 *         Data to send (optionally encrypt)
 	 */
-	async onCall(engine, req) {
+	async #onCall(engine, req) {
 
 		const me = this;
 		const security = engine.Security;
@@ -156,7 +161,7 @@ class WebChannel {
 		}
 
 		// send and wait for response
-		data = await me.fetchCall(url, data);
+		data = await me.#fetchCall(url, data);
 
 		// if error throw
 		if (data.cmd == 'err') {

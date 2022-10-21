@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
 /*
  * Simulate NoedJS Buffer, simple
  */
-class Buffer {
+export default class Buffer {
 
 	static from(value, type) {
 		switch (type) {

@@ -1,30 +1,35 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
+
+import Generator from "./generator.mjs";
+import Security from "./security.mjs";
+import SocketChannel from "./socket.mjs";
+import WebChannel from "./web.mjs";
 
 /**
  * Web and WebSocket API engine
  * Used to initialize remote API and remote services.
  */
 const ERROR_MESSAGE = 'Invalid definition for Engine Remote Service';
-const ERROR_API_UNDEFIEND = 'API Url not defined!';
-const ERROR_SVC_UNDEFIEND = 'Service Url not defined!';
+const ERROR_API_UNDEFINED = 'API Url not defined!';
+const ERROR_SVC_UNDEFINED = 'Service Url not defined!';
 
 /**
  * Main class for Quark Engine Client
  */
-class Engine {
+export default class Engine {
 
 	constructor(cfg) {
 
 		cfg = cfg || {};
 
 		if (!cfg.api) {
-			throw new Error(ERROR_API_UNDEFIEND);
+			throw new Error(ERROR_API_UNDEFINED);
 		}
 
 		if (!cfg.service) {
-			throw new Error(ERROR_SVC_UNDEFIEND);
+			throw new Error(ERROR_SVC_UNDEFINED);
 		}
 
 		const me = this;
@@ -76,6 +81,7 @@ class Engine {
 			await me.SocketChannel.init(me);
 		}
 
+		return me;
 	}
 
 	/**
@@ -88,12 +94,12 @@ class Engine {
 
 		// initialize encryption if provided
 		if (data.signature) {
-			if (!me.Security.isActive) {
+			if (!me.Security?.isActive) {
 				await me.Security.init(data);
 			}
 		}
 
-		me.Generator.build(data.api);
+		me.Generator?.build(data.api);
 	}
 
 	/**
@@ -104,9 +110,9 @@ class Engine {
 
 		const me = this;
 
-		if (me.WebChannel) me.WebChannel.stop();
-		if (me.SocketChannel) me.SocketChannel.stop();
-		if (me.Generator) me.Generator.stop();
+		me.WebChannel?.stop();
+		me.SocketChannel?.stop();
+		me.Generator?.stop();
 
 		me.WebChannel = null;
 		me.SocketChannel = null;
@@ -119,7 +125,7 @@ class Engine {
 	 * Return generated API
 	 */
 	get api() {
-		return this.Generator ? this.Generator.api : null;
+		return this.Generator?.api || null;
 	}
 
 	/*
@@ -127,7 +133,7 @@ class Engine {
 	 */
 	get isActive() {
 		const me = this;
-		if (me.SocketChannel && !me.SocketChannel.isOpen) return false; 
+		if (me.SocketChannel && !me.SocketChannel.isOpen) return false;
 		return me.api && me.Security ? true : false;
 	}
 
@@ -135,14 +141,14 @@ class Engine {
 	 * Return API URL address
 	 */
 	get apiURL() {
-		return this.cfg ? this.cfg.api : null;
+		return this.cfg?.api || null;
 	}
 
 	/*
 	 * Return Service URL address
 	 */
 	get serviceURL() {
-		return this.cfg ? this.cfg.service : null;
+		return this.cfg?.service || null;
 	}
 
 	/*
@@ -150,7 +156,6 @@ class Engine {
 	 */
 	static async init(cfg) {
 		const engine = new Engine(cfg);
-		await engine.init();
-		return engine;
+		return engine.init();
 	}
 }

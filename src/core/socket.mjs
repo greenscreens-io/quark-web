@@ -1,23 +1,20 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
+import Events from "./events.mjs";
+import Queue from "./queue.mjs";
 
 /**
  * Web and WebSocket API engine
  * Used to call remote services.
  * All Direct functions linked to io.greenscreens namespace
  */
-class SocketChannel extends Events {
+export default class SocketChannel extends Events {
 
-	constructor() {
-		super();
-		const me = this;
-
-		me.queue = new Queue();
-		me.webSocket = null;
-		me.engine = null;
-	}
+	#queue = new Queue();
+	#webSocket = null;
+	#engine = null;
 
 	/**
 	 * Initialize Socket channel
@@ -26,19 +23,19 @@ class SocketChannel extends Events {
 
 		const me = this;
 		me.stop();
-		me.engine = engine;
+		me.#engine = engine;
 
 		return new Promise((resolve, reject) => {
-			me._startSocket(resolve, reject);
+			me.#startSocket(resolve, reject);
 			return null;
 		});
 
 	}
-	
+
 	get isOpen() {
 		const me = this;
-		if (me.webSocket == null) return false;
-		return me.webSocket.readyState === me.webSocket.OPEN;
+		if (me.#webSocket == null) return false;
+		return me.#webSocket.readyState === me.#webSocket.OPEN;
 	}
 
 	/**
@@ -46,10 +43,10 @@ class SocketChannel extends Events {
 	 */
 	stop() {
 		const me = this;
-		if (me.webSocket == null) return false;
-		me.webSocket.close();
-		me.webSocket = null;
-		me.engine = null;
+		if (me.#webSocket == null) return false;
+		me.#webSocket.close();
+		me.#webSocket = null;
+		me.#engine = null;
 		return true;
 	}
 
@@ -58,32 +55,32 @@ class SocketChannel extends Events {
 	 *
 	 * @param {Object} req
 	 */
-	canEncrypt(req) {
+	#canEncrypt(req) {
 		const hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.e !== false;
-		return this.engine.Security.isValid && hasArgs;
+		return this.#engine.Security.isValid && hasArgs;
 	}
 
 	/**
-	 * Prepare remtoe call, encrypt if avaialble
+	 * Prepare remote call, encrypt if avaialble
 	 *
 	 * @param {Object} req
 	 *         Data to send (optionaly encrypt)
 	 */
-	async onCall(req, callback) {
+	async #onCall(req, callback) {
 
 		const me = this;
 		let msg = null;
 
-		if (req.id !== me.engine.id) return;
+		if (req.id !== me.#engine.id) return;
 
-		const isEncrypt = me.canEncrypt(req);
+		const isEncrypt = me.#canEncrypt(req);
 
-		me.queue.updateRequest(req, callback);
+		me.#queue.updateRequest(req, callback);
 
 		// encrypt if supported
 		if (isEncrypt) {
-			const enc = await me.engine.Security.encrypt(req.data);
-			const payload = Object.assign({}, me.engine.querys || {}, enc || {});
+			const enc = await me.#engine.Security.encrypt(req.data);
+			const payload = Object.assign({}, me.#engine.querys || {}, enc || {});
 			req.data = [payload];
 		}
 
@@ -96,17 +93,17 @@ class SocketChannel extends Events {
 		msg = JSON.stringify(data);
 
 		if (!Streams.isAvailable) {
-			return me.webSocket.send(msg);
+			return me.#webSocket.send(msg);
 		}
 
 		msg = await Streams.compress(msg);
-		me.webSocket.send(msg);
+		me.#webSocket.send(msg);
 	}
 
-	async _startSocket(resolve, reject) {
+	async #startSocket(resolve, reject) {
 
 		const me = this;
-		const engine = me.engine;
+		const engine = me.#engine;
 		const generator = engine.Generator;
 
 		const challenge = Date.now();
@@ -116,17 +113,17 @@ class SocketChannel extends Events {
 		const querys = Object.assign({}, engine.querys || {});
 		querys.q = challenge;
 		querys.c = Streams.isAvailable;
-		
+
 		Object.entries(querys || {}).forEach((v) => {
-			url.searchParams.append(v[0], encodeURIComponent(v[1]));			
+			url.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
 
-		me.webSocket = new WebSocket(url.toString(), ['ws4is']);
-		me.webSocket.binaryType = "arraybuffer";
+		me.#webSocket = new WebSocket(url.toString(), ['ws4is']);
+		me.#webSocket.binaryType = "arraybuffer";
 
-		const onCall = me.onCall.bind(me);
+		const onCall = me.#onCall.bind(me);
 
-		me.webSocket.onopen = (event) => {
+		me.#webSocket.onopen = (event) => {
 
 			me.emit('online', event);
 			generator.on('call', onCall);
@@ -149,48 +146,48 @@ class SocketChannel extends Events {
 
 		};
 
-		me.webSocket.onclose = (event) => {
+		me.#webSocket.onclose = (event) => {
 			generator.off('call', onCall);
 			me.stop();
 			me.emit('offline', event);
 		}
 
-		me.webSocket.onerror = (event) => {
+		me.#webSocket.onerror = (event) => {
 			generator.off('call', onCall);
 			reject(event);
 			me.stop();
 			me.emit('error', event);
 		};
 
-		me.webSocket.onmessage = (event) => {
-			me._prepareMessage(event.data);
+		me.#webSocket.onmessage = (event) => {
+			me.#prepareMessage(event.data);
 		};
 
 	}
 
-	_isJsonObj(msg) {
+	#isJsonObj(msg) {
 		return msg.startsWith('{') && msg.endsWith('}');
 	}
-	
-	_isJsonArray(msg) {
+
+	#isJsonArray(msg) {
 		return msg.startsWith('[') && msg.endsWith(']');
 	}
-	
+
 	/**
 	 * Parse and prepare received message for processing
 	 *
 	 * @param {String} mesasge
 	 *
 	 */
-	async _prepareMessage(message) {
+	async #prepareMessage(message) {
 
 		const me = this;
-		const engine = me.engine;
+		const engine = me.#engine;
 		const generator = engine.Generator;
-		
+
 		let obj = null;
 		let text = message;
-		
+
 		try {
 
 			if (message instanceof ArrayBuffer) {
@@ -198,13 +195,13 @@ class SocketChannel extends Events {
 			}
 
 			const msg = text.trim();
-			const isJSON = me._isJsonObj(msg) || me._isJsonArray(msg); 
+			const isJSON = me.#isJsonObj(msg) || me.#isJsonArray(msg);
 
 			if (isJSON) {
 				obj = JSON.parse(text);
-				me.onMessage(obj);				
+				me.#onMessage(obj);
 			} else {
-				generator.emit('raw', text);	
+				generator.emit('raw', text);
 			}
 
 		} catch (e) {
@@ -219,12 +216,12 @@ class SocketChannel extends Events {
 	 * @param {*} msg
 	 *
 	 */
-	async onMessage(obj) {
+	async #onMessage(obj) {
 
 		const me = this;
 		let data = null;
 
-		const engine = me.engine;
+		const engine = me.#engine;
 		const generator = engine.Generator;
 		const security = engine.Security;
 
@@ -237,7 +234,7 @@ class SocketChannel extends Events {
 		}
 
 		if (obj.cmd === 'enc') {
-			if (Security.isAvailable) {
+			if (security.isAvailable) {
 				data = await security.decrypt(obj);
 			} else {
 				return generator.emit('error', new Error('Security available on https/wss only'));
@@ -249,7 +246,7 @@ class SocketChannel extends Events {
 		}
 
 		if (data) {
-			const unknown = me.queue.process(data);
+			const unknown = me.#queue.process(data);
 			unknown.forEach((obj) => me.emit('message', obj));
 		} else {
 			me.emit('message', data);

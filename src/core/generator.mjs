@@ -1,25 +1,29 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
+
+import Events from "./events.mjs";
 
 /**
  * Web and WebSocket API engine
  * Used to call remote services.
  * All Direct functions linked to defiend namespace
  */
-class Generator extends Events {
+export default class Generator extends Events {
+
+	#model = {};
+	#id = null;
 
 	constructor(id) {
 		super();
-		this._model = {};
-		this.id = id;
+		this.#id = id;
 	}
 
 	/**
 	 * Return generted API structure and callers
 	 */
 	get api() {
-		return this._model;
+		return this.#model;
 	}
 
 	/**
@@ -30,33 +34,25 @@ class Generator extends Events {
 		const me = this;
 		me.removeAllListeners('call');
 		me.removeAllListeners('api');
-		me.detach();
+		me.#detach();
 	}
 
-	_cleanup(obj, id) {
+	#cleanup(obj, id) {
 		for (let k in obj) {
 			let el = obj[k];
 			if (typeof el === "object") {
-				if(this._cleanup(el, id)) obj[k] = null;
-			} else if(el._id_ === id) {
+				if (this.#cleanup(el, id)) obj[k] = null;
+			} else if (el._id_ === id) {
 				obj[k] = null;
 			}
 		}
 		return Object.values(obj).filter(o => o != null).length === 0;
 	}
-	
-	detach() {
-		const me = this;
-		me._cleanup(me._model, me.id);
-		me._model = {};
-	}
 
-	/**
-	 * Attach generated API namespace to global
-	 */
-	attach() {
-		//const me = this;
-		//Object.entries(me._model).forEach(v => globalThis[v[0]] = v[1]);
+	#detach() {
+		const me = this;
+		me.#cleanup(me.#model, me.#id);
+		me.#model = {};
 	}
 
 	/**
@@ -71,9 +67,7 @@ class Generator extends Events {
 		const me = this;
 		const data = o ? o.api || o : null;
 
-		if (!data) return data;
-		me._buildAPI(data);
-		me.attach();
+		if (data) me.#buildAPI(data);
 
 		return data;
 	}
@@ -85,14 +79,14 @@ class Generator extends Events {
 	 * @param {Object} cfg
 	 * 		Alternative definition to API
 	 */
-	_buildAPI(cfg) {
+	#buildAPI(cfg) {
 
 		const me = this;
 
 		if (Array.isArray(cfg)) {
-			cfg.forEach(v => me._buildInstance(v));
+			cfg.forEach(v => me.#buildInstance(v));
 		} else {
-			me._buildInstance(cfg);
+			me.#buildInstance(cfg);
 		}
 
 	}
@@ -103,20 +97,20 @@ class Generator extends Events {
 	 * @param {Object} api
 	 * 		  Java Class/Method definition
 	 */
-	_buildInstance(api) {
+	#buildInstance(api) {
 
 		const me = this;
 		let tree = null;
 		let action = null;
 
-		tree = me._buildNamespace(api.namespace);
+		tree = me.#buildNamespace(api.namespace);
 
 		if (!tree[api.action]) {
 			tree[api.action] = {};
 		}
 		action = tree[api.action];
 
-		api.methods.forEach(v => me._buildMethod(api.namespace, api.action, action, v, me.id));
+		api.methods.forEach(v => me.#buildMethod(api.namespace, api.action, action, v, me.#id));
 
 	}
 
@@ -129,18 +123,18 @@ class Generator extends Events {
 	 * @return {Object}
 	 * 			Object tree structure
 	 */
-	_buildNamespace(namespace) {
+	#buildNamespace(namespace) {
 
 		const me = this;
 
 		let tmp = globalThis;
-		let tmp2 = me._model;
+		let tmp2 = me.#model;
 
 		namespace.split('.').every(v => {
 
 			if (!tmp[v]) tmp[v] = {};
 			tmp = tmp[v];
-			
+
 			if (!tmp2[v]) tmp2[v] = tmp;
 			tmp2 = tmp;
 
@@ -158,7 +152,7 @@ class Generator extends Events {
 	 * @param {String} instance
 	 * @param {Array} api
 	 */
-	 _buildMethod(namespace, action, instance, api, id) {
+	#buildMethod(namespace, action, instance, api, id) {
 
 		const enc = api.encrypt === false ? false : true;
 		const cfg = {
@@ -167,10 +161,10 @@ class Generator extends Events {
 			m: api.name,
 			l: api.len,
 			e: enc,
-			i:id 
+			i: id
 		};
 
-		instance[api.name] = this._apiFn(cfg);
+		instance[api.name] = this.#apiFn(cfg);
 		instance[api.name]._id_ = id;
 		// Object.freeze(instance[api.name]);
 	}
@@ -180,7 +174,7 @@ class Generator extends Events {
 	 *
 	 * @param {Array} params List of arguments from caller
 	 */
-	_apiFn(params) {
+	#apiFn(params) {
 
 		const me = this;
 		const prop = params;
@@ -201,7 +195,7 @@ class Generator extends Events {
 
 			const promise = new Promise((resolve, reject) => {
 				me.emit('call', req, (err, obj) => {
-					me._onResponse(err, obj, prop, resolve, reject);
+					me.#onResponse(err, obj, prop, resolve, reject);
 				});
 			});
 
@@ -214,7 +208,7 @@ class Generator extends Events {
 	/**
 	 * Process remote response
 	 */
-	_onResponse(err, obj, prop, response, reject) {
+	#onResponse(err, obj, prop, response, reject) {
 
 		if (err) {
 			reject(err);
@@ -236,9 +230,12 @@ class Generator extends Events {
 
 	/**
 	 * Static instance builder
+	 * @param {object} cfg Api list from server side Quark engine
+	 * @param {number} id Unique Quark Engien ID - to link functions to the engine instance
+	 * @returns 
 	 */
-	static async build(cfg) {
-		const generator = new Generator();
+	static async build(cfg, id) {
+		const generator = new Generator(id);
 		generator.build(cfg);
 		return generator;
 	}

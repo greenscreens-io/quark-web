@@ -1,34 +1,31 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
 /*
 class TestEvents extends EventES6 {
-     constructor() {
-        super();
-     }
+	 constructor() {
+		super();
+	 }
 }
 obj.on('', callback)
 obj.once('', callback)
 obj.emit('', ...args)
 */
 
-class Events {
+export default class Events {
 
-	constructor() {
-		const me = this;
-		me.listeners = new Map();
-		me.onceListeners = new Map();
-		me.triggers = new Map();
-	}
+	#listeners = new Map();
+	#onceListeners = new Map();
+	#triggers = new Map();
 
 	// help-function for onReady and onceReady
 	// the callbackfunction will execute,
 	// if the label has already been triggerd with the last called parameters
-	_checkPast(label, callback) {
+	#checkPast(label, callback) {
 		const me = this;
-		if (me.triggers.has(label)) {
-			callback(me.triggers.get(label));
+		if (me.#triggers.has(label)) {
+			callback(me.#triggers.get(label));
 			return true;
 		} else {
 			return false;
@@ -38,10 +35,10 @@ class Events {
 	// execute the callback everytime the label is trigger
 	on(label, callback, checkPast = false) {
 		const me = this;
-		me.listeners.has(label) || me.listeners.set(label, []);
-		me.listeners.get(label).push(callback);
+		me.#listeners.has(label) || me.#listeners.set(label, []);
+		me.#listeners.get(label).push(callback);
 		if (checkPast)
-			me._checkPast(label, callback);
+			me.#checkPast(label, callback);
 	}
 
 	// execute the callback everytime the label is trigger
@@ -54,9 +51,9 @@ class Events {
 	// execute the callback onetime the label is trigger
 	once(label, callback, checkPast = false) {
 		const me = this;
-		me.onceListeners.has(label) || me.onceListeners.set(label, []);
-		if (!(checkPast && me._checkPast(label, callback))) {
-			me.onceListeners.get(label).push(callback);
+		me.#onceListeners.has(label) || me.#onceListeners.set(label, []);
+		if (!(checkPast && me.#checkPast(label, callback))) {
+			me.#onceListeners.get(label).push(callback);
 		}
 	}
 
@@ -80,15 +77,15 @@ class Events {
 					inListener.set(label, listeners.filter((value) => (value !== callback)));
 				}
 			};
-			_off(me.listeners);
-			_off(me.onceListeners);
+			_off(me.#listeners);
+			_off(me.#onceListeners);
 		}
 	}
 
 	removeAllListeners(label) {
 		const me = this;
-		me.listeners.delete(label);
-		me.onceListeners.delete(label);
+		me.#listeners.delete(label);
+		me.#onceListeners.delete(label);
 	}
 
 	trigger(label, ...args) {
@@ -98,8 +95,8 @@ class Events {
 	// trigger the event with the label
 	emit(label, ...args) {
 		const me = this;
-		
-		me.triggers.set(label, ...args); // save all triggerd labels for onready and onceready
+
+		me.#triggers.set(label, ...args); // save all triggerd labels for onready and onceready
 		const _trigger = (inListener, label, ...args) => {
 			const listeners = inListener.get(label);
 			if (listeners && listeners.length) {
@@ -109,9 +106,9 @@ class Events {
 				return true;
 			}
 		};
-		let res = _trigger(me.onceListeners, label, ...args);
-		res = res || _trigger(me.listeners, label, ...args);
-		me.onceListeners.delete(label); // callback for once executed, so delete it.
+		let res = _trigger(me.#onceListeners, label, ...args);
+		res = res || _trigger(me.#listeners, label, ...args);
+		me.#onceListeners.delete(label); // callback for once executed, so delete it.
 		return res;
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, 2020  Green Screens Ltd.
+ * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
 /**
@@ -10,20 +10,15 @@
  * browser side to prevent tampering
  */
 
-class Security {
+export default class Security {
 
-	constructor() {
+	#VERSION = 0;
+	#encKEY = null;
+	#aesKEY = null;
+	#exportedAES = null;
 
-		const me = this;
-		me.VERSION = 0;
-		me.encKEY = null;
-		me.aesKEY = null;
-		me.exportedAES = null;
-
-		me.encoder = new TextEncoder();
-		me.decoder = new TextDecoder();
-
-	}
+	#encoder = new TextEncoder();
+	#decoder = new TextDecoder();
 
 	/**
 	 *  Use local challenge, to verify received data signature
@@ -114,7 +109,7 @@ class Security {
 
 		const me = this;
 		const binSignature = Buffer.from(signature, 'base64');
-		const binChallenge = me.encoder.encode(challenge);
+		const binChallenge = me.#encoder.encode(challenge);
 
 		const type = {
 			name: "ECDSA",
@@ -143,12 +138,12 @@ class Security {
 		let encoded = data;
 
 		if (typeof data === 'string') {
-			encoded = me.encoder.encode(data);
+			encoded = me.#encoder.encode(data);
 		}
 
 		return crypto.subtle.encrypt(
 			"RSA-OAEP",
-			me.encKEY,
+			me.#encKEY,
 			encoded
 		);
 	}
@@ -158,7 +153,7 @@ class Security {
 	 */
 	async encryptAesMessage(key, iv, data) {
 
-		const encoded = this.encoder.encode(data);
+		const encoded = this.#encoder.encode(data);
 		const type = {
 			name: "AES-CTR",
 			counter: iv,
@@ -187,7 +182,7 @@ class Security {
 
 	get isValid() {
 		const me = this;
-		return me.encKEY !== null && me.aesKEY !== null;
+		return me.#encKEY !== null && me.#aesKEY !== null;
 	}
 
 	static get isAvailable() {
@@ -209,15 +204,15 @@ class Security {
 
 		console.log('Security Initializing...');
 
-		me.VERSION++;
+		me.#VERSION++;
 
-		me.encKEY = await me.importRsaKey(cfg.keyEnc, {
+		me.#encKEY = await me.importRsaKey(cfg.keyEnc, {
 			name: 'RSA-OAEP',
 			hash: 'SHA-256'
 		}, 'encrypt');
 
-		me.aesKEY = await me.generateAesKey();
-		me.exportedAES = await me.exportAesKey(me.aesKEY);
+		me.#aesKEY = await me.generateAesKey();
+		me.#exportedAES = await me.exportAesKey(me.#aesKEY);
 
 		const verKey = await me.importRsaKey(cfg.keyVer, {
 			name: 'ECDSA',
@@ -227,9 +222,9 @@ class Security {
 		const status = await me.verify(verKey, cfg.signature, me.getChallenge(cfg || {}));
 
 		if (!status) {
-			me.encKEY = null;
-			me.aesKEY = null;
-			me.exportedAES = null;
+			me.#encKEY = null;
+			me.#aesKEY = null;
+			me.#exportedAES = null;
 			throw new Error('Signature invalid');
 		}
 
@@ -246,25 +241,25 @@ class Security {
 
 		const me = this;
 		const iv = me.getRandom(16);
-		const key = new Uint8Array(iv.length + me.exportedAES.length);
+		const key = new Uint8Array(iv.length + me.#exportedAES.length);
 
 		key.set(iv);
-		key.set(me.exportedAES, iv.length);
+		key.set(me.#exportedAES, iv.length);
 
 		const str = (typeof data === 'string') ? data : JSON.stringify(data);
 		const encryptedKey = await me.encryptRSA(key);
-		const encryptedData = await me.encryptAesMessage(me.aesKEY, iv, str);
+		const encryptedData = await me.encryptAesMessage(me.#aesKEY, iv, str);
 
 		if (bin === true) {
 			return {
-				t:'1',
+				t: '1',
 				d: encryptedData,
 				k: encryptedKey
 			};
 		}
 
 		return {
-			t:'1',
+			t: '1',
 			d: Buffer.to(encryptedData, 'hex'),
 			k: Buffer.to(encryptedKey, 'hex')
 		};
@@ -286,9 +281,9 @@ class Security {
 		const iv = cfg.iv;
 		const data = cfg.d;
 
-		const message = await me.decryptAesMessage(me.aesKEY, iv, data);
+		const message = await me.decryptAesMessage(me.#aesKEY, iv, data);
 
-		const str = me.decoder.decode(message);
+		const str = me.#decoder.decode(message);
 		const obj = JSON.parse(str);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
