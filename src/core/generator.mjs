@@ -242,7 +242,7 @@ export default class Generator extends Event {
 	 * @param {number} id Unique Quark Engien ID - to link functions to the engine instance
 	 * @returns 
 	 */
-	static async build(cfg, id, timeout) {
+	static build(cfg, id, timeout) {
 		const generator = new Generator(id, timeout);
 		generator.build(cfg);
 		return generator;
