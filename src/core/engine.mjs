@@ -2,10 +2,10 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import Generator from "./generator.mjs";
-import Security from "./security.mjs";
-import SocketChannel from "./socket.mjs";
-import WebChannel from "./web.mjs";
+import Generator from "./Generator.mjs";
+import Security from "./Security.mjs";
+import SocketChannel from "./Socket.mjs";
+import WebChannel from "./Web.mjs";
 
 /**
  * Web and WebSocket API engine

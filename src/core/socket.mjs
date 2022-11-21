@@ -2,15 +2,15 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import Events from "./events.mjs";
-import Queue from "./queue.mjs";
+import Event from "./Event.mjs";
+import Queue from "./Queue.mjs";
 
 /**
  * Web and WebSocket API engine
  * Used to call remote services.
  * All Direct functions linked to io.greenscreens namespace
  */
-export default class SocketChannel extends Events {
+export default class SocketChannel extends Event {
 
 	#queue = new Queue();
 	#webSocket = null;

@@ -1,6 +1,6 @@
 {
   "name": "quark-engine",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "license": "MIT",
   "productName": "quark-engine",
   "description": "Quark Engine Client lib for browsers ",
@@ -10,7 +10,7 @@
   "homepage": "http://www.greenscreens.io/quark",
   "main": "dist/quark.min.js",
   "scripts": {
-    "build": "webpack"
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
     "url": "https://github.com/greenscreens-io/quark-engine/issues"
   },
   "devDependencies": {
-    "terser-webpack-plugin": "^5.3.6"
+    "rollup-plugin-sourcemaps": "^0.6.3",
+    "rollup-plugin-terser": "^7.0.2"
   }
 }

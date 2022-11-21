@@ -2,21 +2,25 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import Events from "./events.mjs";
+import Event from "./Event.mjs";
+import Request from "./Request.mjs";
 
 /**
  * Web and WebSocket API engine
  * Used to call remote services.
  * All Direct functions linked to defiend namespace
  */
-export default class Generator extends Events {
+export default class Generator extends Event {
 
 	#model = {};
 	#id = null;
+	#cnt = 0;
+	#timeout = 0;
 
-	constructor(id) {
+	constructor(id = 0, timeout = 0) {
 		super();
 		this.#id = id;
+		this.#timeout = timeout;
 	}
 
 	/**
@@ -32,15 +36,17 @@ export default class Generator extends Events {
 	stop() {
 
 		const me = this;
-		me.removeAllListeners('call');
-		me.removeAllListeners('api');
+		me.off('call');
+		me.off('api');
+		me.off('raw');
+		me.off('error');
 		me.#detach();
 	}
 
 	#cleanup(obj, id) {
 		for (let k in obj) {
 			let el = obj[k];
-			if (typeof el === "object") {
+			if (typeof el === 'object') {
 				if (this.#cleanup(el, id)) obj[k] = null;
 			} else if (el._id_ === id) {
 				obj[k] = null;
@@ -110,7 +116,7 @@ export default class Generator extends Events {
 		}
 		action = tree[api.action];
 
-		api.methods.forEach(v => me.#buildMethod(api.namespace, api.action, action, v, me.#id));
+		api.methods?.forEach(v => me.#buildMethod(api.namespace, api.action, action, v, me.#id));
 
 	}
 
@@ -179,9 +185,11 @@ export default class Generator extends Events {
 		const me = this;
 		const prop = params;
 
-		function fn() {
+		const fn = function () {
 
 			const args = Array.prototype.slice.call(arguments);
+
+			if (args.length != prop.l) throw new Error(`Invalid arguments length. Required (${prop.l})`);
 
 			const req = {
 				"namespace": prop.n,
@@ -190,40 +198,39 @@ export default class Generator extends Events {
 				"id": prop.i,
 				"e": prop.e,
 				"data": args,
+				"key" : ++me.#cnt,
 				"ts": Date.now()
 			};
+			Object.seal(req);
 
-			const promise = new Promise((resolve, reject) => {
-				me.emit('call', req, (err, obj) => {
-					me.#onResponse(err, obj, prop, resolve, reject);
-				});
+			return new Promise((resolve, reject) => {
+				try {
+					const proxy = Request.wrap(req, me.#timeout, (obj) => {
+						me.#onResponse(obj, resolve, reject);
+					});
+					me.emit('call', proxy);
+				} catch (e) {
+					console.log(e);
+					reject(e);
+				}
 			});
-
-			return promise;
 		}
-
 		return fn;
 	}
 
 	/**
 	 * Process remote response
 	 */
-	#onResponse(err, obj, prop, response, reject) {
+	#onResponse(obj, resolve, reject) {
 
-		if (err) {
-			reject(err);
-			return;
-		}
+		if (obj instanceof Error) return reject(obj);
 
-		const sts = (prop.c === obj.action) &&
-			(prop.m === obj.method) &&
-			obj.result &&
-			obj.result.success;
+		const result = obj.result || obj;
 
-		if (sts) {
-			response(obj.result);
+		if (result.success) {
+			resolve(result.data);
 		} else {
-			reject(obj.result || obj);
+			reject(result);
 		}
 
 	}
@@ -234,8 +241,8 @@ export default class Generator extends Events {
 	 * @param {number} id Unique Quark Engien ID - to link functions to the engine instance
 	 * @returns 
 	 */
-	static async build(cfg, id) {
-		const generator = new Generator(id);
+	static async build(cfg, id, timeout) {
+		const generator = new Generator(id, timeout);
 		generator.build(cfg);
 		return generator;
 	}
