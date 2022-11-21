@@ -55,7 +55,7 @@ export default class WebChannel {
 	 * Callback for API call request,
 	 * here we make remote API call
 	 */
-	async #onRequest(req, callback) {
+	async #onRequest(req) {
 
 		const me = this;
 		let o = null;
@@ -65,11 +65,10 @@ export default class WebChannel {
 
 		try {
 			o = await me.#onCall(me.#engine, req);
+			req.finish(o);
 		} catch (err) {
-			e = err;
+			req.finish(err);
 		}
-
-		callback(e, o);
 
 	}
 

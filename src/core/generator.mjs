@@ -199,6 +199,7 @@ export default class Generator extends Event {
 				"e": prop.e,
 				"data": args,
 				"key" : ++me.#cnt,
+				"tid" : 0,
 				"ts": Date.now()
 			};
 			Object.seal(req);

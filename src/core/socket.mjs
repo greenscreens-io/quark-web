@@ -66,7 +66,7 @@ export default class SocketChannel extends Event {
 	 * @param {Object} req
 	 *         Data to send (optionaly encrypt)
 	 */
-	async #onCall(req, callback) {
+	async #onCall(req) {
 
 		const me = this;
 		let msg = null;
@@ -75,7 +75,7 @@ export default class SocketChannel extends Event {
 
 		const isEncrypt = me.#canEncrypt(req);
 
-		me.#queue.updateRequest(req, callback);
+		me.#queue.updateRequest(req);
 
 		// encrypt if supported
 		if (isEncrypt) {
