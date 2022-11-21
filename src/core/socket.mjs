@@ -4,6 +4,7 @@
 
 import Event from "./Event.mjs";
 import Queue from "./Queue.mjs";
+import Streams from "./Streams.mjs";
 
 /**
  * Web and WebSocket API engine
@@ -67,6 +68,8 @@ export default class SocketChannel extends Event {
 	 *         Data to send (optionaly encrypt)
 	 */
 	async #onCall(req) {
+
+		req = req.detail;
 
 		const me = this;
 		let msg = null;

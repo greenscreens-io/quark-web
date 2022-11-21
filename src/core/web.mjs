@@ -57,6 +57,7 @@ export default class WebChannel {
 	 */
 	async #onRequest(req) {
 
+		req = req.detail;
 		const me = this;
 		let o = null;
 		let e = null;

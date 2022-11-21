@@ -10,6 +10,8 @@
  * browser side to prevent tampering
  */
 
+import Buffer from "./Buffer.mjs";
+
 export default class Security {
 
 	#VERSION = 0;
