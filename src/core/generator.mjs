@@ -239,7 +239,7 @@ export default class Generator extends Event {
 	/**
 	 * Static instance builder
 	 * @param {object} cfg Api list from server side Quark engine
-	 * @param {number} id Unique Quark Engien ID - to link functions to the engine instance
+	 * @param {number} id Unique Quark Engine ID - to link functions to the engine instance
 	 * @returns 
 	 */
 	static build(cfg, id, timeout) {
