@@ -32,6 +32,7 @@ export default class Queue extends Map {
 		if (me.#up > 50 && me.#down >= me.#up) {
 			me.#up = 0;
 			me.#down = 0;
+			me.clear();
 		}
 	}
 
