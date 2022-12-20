@@ -229,7 +229,7 @@ export default class Generator extends Event {
 		const result = obj.result || obj;
 
 		if (result.success) {
-			resolve(result.data ? result.data : result);
+			resolve(result);
 		} else {
 			reject(result);
 		}

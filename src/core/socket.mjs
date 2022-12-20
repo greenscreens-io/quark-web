@@ -99,7 +99,7 @@ export default class SocketChannel extends Event {
 			return me.#webSocket.send(msg);
 		}
 
-		msg = await Streams.compress(msg);
+		msg = await Streams.compress(msg).arrayBuffer();
 		me.#webSocket.send(msg);
 	}
 
@@ -162,18 +162,33 @@ export default class SocketChannel extends Event {
 			me.emit('error', event);
 		};
 
-		me.#webSocket.onmessage = (event) => {
-			me.#prepareMessage(event.data);
+		me.#webSocket.onmessage = async (event) => {
+			try {
+				if (event.data instanceof ArrayBuffer) {
+					await me.#prepareBinaryMessage(event.data);
+				} else {
+					await me.#prepareTextMessage(event.data);
+				}
+			} catch(e) {
+				generator.emit('error', e);
+			}
 		};
 
 	}
 
-	#isJsonObj(msg) {
-		return msg.startsWith('{') && msg.endsWith('}');
-	}
-
-	#isJsonArray(msg) {
-		return msg.startsWith('[') && msg.endsWith(']');
+	async #prepareBinaryMessage(message) {
+		const me = this;
+		if (Streams.isAvailable && Streams.isCompressed(message)) {
+			const resp = Streams.decompress(message);
+			message = await resp.arrayBuffer();
+		}
+		const isJSON = Streams.isJson(message);
+		if (isJSON) {
+			const text = new TextDecoder().decode(message);		
+			me.#prepareTextMessage(text);
+		} else {
+			generator.emit('raw', message);
+		}
 	}
 
 	/**
@@ -182,29 +197,20 @@ export default class SocketChannel extends Event {
 	 * @param {String} mesasge
 	 *
 	 */
-	async #prepareMessage(message) {
+	async #prepareTextMessage(message) {
 
 		const me = this;
 		const engine = me.#engine;
 		const generator = engine.Generator;
 
-		let obj = null;
-		let text = message;
-
 		try {
-
-			if (message instanceof ArrayBuffer) {
-				text = await Streams.decompress(message);
-			}
-
-			const msg = text.trim();
-			const isJSON = me.#isJsonObj(msg) || me.#isJsonArray(msg);
+			const isJSON = Streams.isJson(message);
 
 			if (isJSON) {
-				obj = JSON.parse(text);
+				const obj = JSON.parse(message);
 				me.#onMessage(obj);
 			} else {
-				generator.emit('raw', text);
+				generator.emit('raw', message);
 			}
 
 		} catch (e) {
@@ -237,7 +243,7 @@ export default class SocketChannel extends Event {
 		}
 
 		if (obj.cmd === 'enc') {
-			if (security.isAvailable) {
+			if (security.isValid) {
 				data = await security.decrypt(obj);
 			} else {
 				return generator.emit('error', new Error('Security available on https/wss only'));

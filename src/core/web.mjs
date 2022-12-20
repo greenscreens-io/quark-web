@@ -113,7 +113,8 @@ export default class WebChannel {
 		const MIME = 'application/json';
 		const HEADERS_ = {
 			'Accept': MIME,
-			'Content-Type': MIME
+			'Content-Type': MIME,
+			'Accept-Encoding': 'gzip,deflate,br'
 		};
 
 		const service = new URL(url);
