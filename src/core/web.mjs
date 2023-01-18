@@ -153,7 +153,7 @@ export default class WebChannel {
 		const url = engine.serviceURL;
 
 		const hasArgs = Array.isArray(req.data) && req.data.length > 0;
-		const shouldEncrypt = security.isValid && hasArgs;
+		const shouldEncrypt = security.isValid && hasArgs && req.enc;
 		let data = req;
 
 		// encrypt if supported
