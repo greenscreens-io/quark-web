@@ -11,6 +11,6 @@ or refer to [quark-demo](https://github.com/greenscreens-io/quark-demo) repo.
 1. Clone repository to local drive
 2. Install NodeJS and NPM
 2. call `npm install` to install dependencies
-3. call `gulp` to pack scripts into distributable lib
+3. call `rollup -c` to pack scripts into distributable lib
 
-&copy; Green Screens Ltd. 2016 - 2022
+&copy; Green Screens Ltd. 2016 - 2023
