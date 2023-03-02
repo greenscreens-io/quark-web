@@ -2,6 +2,9 @@
 # [Quark Engine Web Client](https://quark.greenscreens.ltd/).
 
 
+## v4.2.0. (2023.Q1)
+ - Switch from RSA to ECDH key exchange
+
 ## v4.0.0. (2022.Q4)
 
  - Migrate events to native EventTarget
