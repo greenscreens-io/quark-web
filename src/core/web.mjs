@@ -106,7 +106,7 @@ export default class WebChannel {
 	/**
 	 * Send data to server with http/s channel
 	 */
-	async #fetchCall(url, data) {
+	async #fetchCall(url, data, head) {
 
 		const me = this;
 		const engine = me.#engine;
@@ -118,7 +118,7 @@ export default class WebChannel {
 		};
 
 		const service = new URL(url);
-		const headers = Object.assign({}, engine.headers || {}, HEADERS_);
+		const headers = Object.assign({}, engine.headers || {}, HEADERS_, head || {});
 		const querys = Object.assign({}, engine.querys || {});
 		const payload = Object.assign({}, engine.querys || {}, data || {});
 		const body = JSON.stringify(payload);
@@ -135,7 +135,6 @@ export default class WebChannel {
 
 		return json;
 	}
-
 
 	/**
 	 * Prepare remote call, encrypt if available
@@ -155,14 +154,16 @@ export default class WebChannel {
 		const hasArgs = Array.isArray(req.data) && req.data.length > 0;
 		const shouldEncrypt = security.isValid && hasArgs && req.enc;
 		let data = req;
+		let head = {};
 
 		// encrypt if supported
 		if (shouldEncrypt) {
 			data = await security.encrypt(req);
+			head['gs-public-key'] = security.publicKey;
 		}
 
 		// send and wait for response
-		data = await me.#fetchCall(url, data);
+		data = await me.#fetchCall(url, data, head);
 
 		// if error throw
 		if (data.cmd == 'err') {

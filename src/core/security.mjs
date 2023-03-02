@@ -6,34 +6,107 @@
  * Security engine using Web Crypto API to encrypt / decrypt
  * messages between browser and server.
  *
- * Received RSA public key is signed and verified at the
- * browser side to prevent tampering
  */
 
 import Buffer from "./Buffer.mjs";
 
 export default class Security {
 
-	#VERSION = 0;
-	#encKEY = null;
-	#aesKEY = null;
-	#exportedAES = null;
+    static #ECDH_TYPE = { name: 'ECDH', namedCurve: "P-256" };
+    static #AES_TYPE= { name: "AES-CTR", length: 128 };
+    
+    #publicKey = null;
+    #aesKey = null;
 
-	#encoder = new TextEncoder();
-	#decoder = new TextDecoder();
+    get publicKey() { return this.#publicKey;}
+    
+    updateCookie(path = "/") {
+        document.cookie = `gs-public-key=${this.#publicKey||''};path=${path}`;
+    }
 
-	/**
-	 *  Use local challenge, to verify received data signature
-	 *
-	 *  @param {Object} cfg
-	 *      Data received from server contins public key and signature
-	 */
-	getChallenge(cfg) {
-		return [cfg.challenge || '', cfg.keyEnc || '', cfg.keyVer || ''].join('');
-	}
+    /**
+     *  Use local challenge, to verify received data signature
+     *
+     *  @param {Object} cfg Data received from server contins public key and signature
+     */
+    #getChallenge(cfg) {
+        return [cfg.challenge || '', cfg.keyEnc || '', cfg.keyVer || ''].join('');
+    }
+    
+    /**
+     * Import Async key received from server
+     * Key is publicKey used to send encrypted AES key
+     *
+     * @param {String} key PEM encoded key
+     * @param {Object} type Crypto API key definition format
+     * @param {String} mode Comma separted list of key usages 
+     */
+    async importKey(key, type, mode) {
+        const der = Buffer.fromBase64(key);
+        const use = mode ? mode.split(',') : [];
+        return crypto.subtle.importKey('spki', der, type, true, use);
+    }
+    
+    /**
+     * Export key in hex form
+     * @param {CryptoKey} key
+     * @returns {string}
+     */
+    async exportKey(key) {
+        const ab = await crypto.subtle.exportKey('raw',  key);
+        return Buffer.toHex(ab);
+    }
 
+    /**
+     * Verify signature
+     *
+     * @param {CryptoKey} Public key used for verification
+     * @param {ArrayBuffer} signature Signature of received data
+     * @param {ArrayBuffer} challenge Challenge to verify with signature (ts + pemENCDEC + pemVERSGN)
+     */
+    async verify(key, signature, challenge) {
+        signature = Buffer.fromBase64(signature);
+        challenge = Buffer.toBuffer(challenge);
+        const type = { name: "ECDSA", hash: { name: "SHA-384" } };
+        return crypto.subtle.verify(type, key, signature, challenge);
+    }
 
-	/**
+    async #initVerify(cfg) {
+        const me = this;
+        const type = { name: 'ECDSA', namedCurve: "P-384" };
+        const verKey = await me.importKey(cfg.keyVer, type, 'verify');
+        const status = await me.verify(verKey, cfg.signature, me.#getChallenge(cfg));
+        if (!status) throw new Error('Signature invalid');
+    }
+
+    /**
+     * Initialize server public key
+     * @param {object} cfg 
+     */
+    #initPublic(cfg) {        
+        return this.importKey(cfg.keyEnc, Security.#ECDH_TYPE, '');
+    }
+
+    /**
+     * Initialize browser ECDH key pair 
+     */
+    #initKeyPair() {
+        const use = ['deriveKey','deriveBits'];
+        return crypto.subtle.generateKey(Security.#ECDH_TYPE, true, use);
+    }
+
+    /**
+     * Derive shared secret from server public ECDH and browser keypair.private ECDH
+     * @returns {CryptoKey}
+     */
+    #deriveAES(priv, pub) {
+        const pubDef = { name: "ECDH", public: pub };
+        const use = ['encrypt', 'decrypt'];
+        const derivedKey = {name:'AES-CTR', length: 128};
+        return crypto.subtle.deriveKey(pubDef, priv, derivedKey, false, use);
+    }
+
+    /**
 	 * Create random bytes
 	 *
 	 * @param {int} size
@@ -45,228 +118,93 @@ export default class Security {
 		return array;
 	}
 
-	/**
-	 * Create AES key for data encryption
-	 * @returns CryptoKey
-	 */
-	async generateAesKey() {
-		const type = {
-			name: "AES-CTR",
-			length: 128
-		};
-		const mode = ["encrypt", "decrypt"];
-		return crypto.subtle.generateKey(type, true, mode);
-	}
+    /**
+     * Encrypt message with AES
+     * @param {CryptoKey} key 
+     * @param {String|ArrayBuffer} iv IV as Hex string 
+     * @param {String|ArrayBuffer} data as Hex string 
+     */
+    async encryptRaw(key, iv, data) {        
+        const ivbin = Buffer.toBuffer(iv);
+        const databin = Buffer.toBuffer(data);
+        const type = Object.assign({counter: ivbin}, Security.#AES_TYPE);
+        return crypto.subtle.encrypt(type, key, databin);
+    }
 
-	/**
-	 * Extract CryptoKey into RAW bytes
-	 * @param {CryptoKey} key
-	 * @returns Uin8Array
-	 */
-	async exportAesKey(key) {
-		const buffer = await crypto.subtle.exportKey("raw", key);
-		return new Uint8Array(buffer);
-	}
+    /**
+     * Decrypt AES encrypted message
+     * @param {CryptoKey} key 
+     * @param {String|ArrayBuffer} iv IV as Hex string 
+     * @param {String|ArrayBuffer} data as Hex string 
+     */
+    async decryptRaw(key, iv, data) {
+        const ivbin = Buffer.toBuffer(iv);
+        const databin = Buffer.toBuffer(data);
+        const type = Object.assign({counter: ivbin}, Security.#AES_TYPE);
+        return crypto.subtle.decrypt(type, key, databin);
+    }
 
-	/**
-	 * Import RSA key received from server
-	 * Key is publicKey used to send encrypted AES key
-	 *
-	 * @param {String} key
-	 *          PEM encoded key without headers,
-	 *          flattened in a single line
-	 *
-	 * @param {Object} type
-	 *          Crypto API key definition format
-	 *
-	 * @param {String} mode
-	 *          Key usage 'encrypt' or 'decrypt'
-	 */
-	async importRsaKey(key, type, mode) {
+    async decryptAsString(key, iv, data) {
+        const result = await this.decryptRaw(key, iv, data);
+        return Buffer.toText(result);
+    }
 
-		const binaryDer = Buffer.from(key, 'base64');
-
-		return crypto.subtle.importKey(
-			"spki",
-			binaryDer,
-			type,
-			true,
-			[mode]
-		);
-	}
-
-	/**
-	 * Verify signature
-	 *
-	 * @param {CryptoKey}
-	 *      Public key used for verification
-	 *
-	 * @param {ArrayBuffer} signature
-	 *        Signature of received data
-	 *
-	 * @param {ArrayBuffer} challenge
-	 *        Challenge to verify with signature (ts + pemENCDEC + pemVERSGN)
-	 */
-	async verify(key, signature, challenge) {
-
-		const me = this;
-		const binSignature = Buffer.from(signature, 'base64');
-		const binChallenge = me.#encoder.encode(challenge);
-
-		const type = {
-			name: "ECDSA",
-			hash: {
-				name: "SHA-384"
-			}
-		};
-
-		return crypto.subtle.verify(
-			type,
-			key,
-			binSignature,
-			binChallenge
-		);
-	}
-
-	/**
-	 * Encrypt message with RSA key
-	 *
-	 * @param {String || ArrayBuffer} data
-	 *        String or AraryBuffer to encrypt
-	 */
-	async encryptRSA(data) {
-
-		const me = this;
-		let encoded = data;
-
-		if (typeof data === 'string') {
-			encoded = me.#encoder.encode(data);
-		}
-
-		return crypto.subtle.encrypt(
-			"RSA-OAEP",
-			me.#encKEY,
-			encoded
-		);
-	}
-
-	/**
-	 * Encrypt message with AES
-	 */
-	async encryptAesMessage(key, iv, data) {
-
-		const encoded = this.#encoder.encode(data);
-		const type = {
-			name: "AES-CTR",
-			counter: iv,
-			length: 128
-		};
-
-		return crypto.subtle.encrypt(type, key, encoded);
-	}
-
-	/**
-	 * Decrypt AES encrypted message
-	 */
-	async decryptAesMessage(key, iv, data) {
-
-		const databin = Buffer.from(data, "hex");
-		const counter = Buffer.from(iv, "hex");
-
-		const type = {
-			name: "AES-CTR",
-			counter: counter,
-			length: 128
-		};
-
-		return crypto.subtle.decrypt(type, key, databin);
-	}
+    async encryptAsHex(key, iv, data) {   
+        const result = await this.encryptRaw(key, iv, data);
+        return Buffer.toHex(result);
+    }
 
 	get isValid() {
 		const me = this;
-		return me.#encKEY !== null && me.#aesKEY !== null;
+		return me.#publicKey !== null && me.#aesKey !== null;
 	}
 
 	static get isAvailable() {
 		return crypto.subtle != null;
 	}
 
-	/**
-	 * Initialize encryption and verification keys
-	 * Verifies data signatures to prevent tampering
-	 */
-	async init(cfg) {
-
-		const me = this;
+    /**
+     * Initialize encryption and verification keys
+     * Verifies data signatures to prevent tampering
+     */
+    async init(cfg) {
 
 		if (!Security.isAvailable) {
 			console.log('Security mode not available, TLS protocol required.');
 			return;
 		}
 
-		console.log('Security Initializing...');
+		console.log('Security Initializing...');		
+        const me = this;
 
-		me.#VERSION++;
+        await me.#initVerify(cfg);
 
-		me.#encKEY = await me.importRsaKey(cfg.keyEnc, {
-			name: 'RSA-OAEP',
-			hash: 'SHA-256'
-		}, 'encrypt');
-
-		me.#aesKEY = await me.generateAesKey();
-		me.#exportedAES = await me.exportAesKey(me.#aesKEY);
-
-		const verKey = await me.importRsaKey(cfg.keyVer, {
-			name: 'ECDSA',
-			namedCurve: "P-384"
-		}, 'verify');
-
-		const status = await me.verify(verKey, cfg.signature, me.getChallenge(cfg || {}));
-
-		if (!status) {
-			me.#encKEY = null;
-			me.#aesKEY = null;
-			me.#exportedAES = null;
-			throw new Error('Signature invalid');
-		}
-
+        const publicKey = await me.#initPublic(cfg);
+        const keyPair = await me.#initKeyPair();
+        
+        me.#publicKey = await me.exportKey(keyPair.publicKey);
+        me.#aesKey = await me.#deriveAES(keyPair.privateKey, publicKey);
+        
 		console.log('Security Initialized!');
+        
+    }
 
-	}
+    /**
+     * Data encryptor, encrypt aes with async and data with aes
+     */    
+    async encrypt(data) {
 
-	/**
-	 *  Ecnrypt received data in format {d:.., k:...}
-	 * @param
-	 * 		data  - string to encrypt
-	 */
-	async encrypt(data, bin) {
+		data = (typeof data === 'string') ? data : JSON.stringify(data);
 
-		const me = this;
-		const iv = me.getRandom(16);
-		const key = new Uint8Array(iv.length + me.#exportedAES.length);
+        const me = this;
+        const iv = me.getRandom(16);
+        
+        const d = await me.encryptAsHex(me.#aesKey, iv, data);
+        const k = Buffer.toHex(iv);
 
-		key.set(iv);
-		key.set(me.#exportedAES, iv.length);
+        return { d: d, k: k, t: 1, b:6};
 
-		const str = (typeof data === 'string') ? data : JSON.stringify(data);
-		const encryptedKey = await me.encryptRSA(key);
-		const encryptedData = await me.encryptAesMessage(me.#aesKEY, iv, str);
-
-		if (bin === true) {
-			return {
-				t: '1',
-				d: encryptedData,
-				k: encryptedKey
-			};
-		}
-
-		return {
-			t: '1',
-			d: Buffer.to(encryptedData, 'hex'),
-			k: Buffer.to(encryptedKey, 'hex')
-		};
-
-	}
+    }
 
 	/**
 	 * Decrypt received data in format {d:.., k:...}
@@ -283,10 +221,8 @@ export default class Security {
 		const iv = cfg.iv;
 		const data = cfg.d;
 
-		const message = await me.decryptAesMessage(me.#aesKEY, iv, data);
-
-		const str = me.#decoder.decode(message);
-		const obj = JSON.parse(str);
+		const message = await me.decryptAsString(me.#aesKey, iv, data);
+		const obj = JSON.parse(message);
 
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			return obj.data;
@@ -301,4 +237,4 @@ export default class Security {
 		return security;
 	}
 
-};
+}

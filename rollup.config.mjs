@@ -9,7 +9,7 @@
  */
 
 import { terser } from 'rollup-plugin-terser';
-import { sourcemaps } from 'rollup-plugin-sourcemaps';
+import sourcemaps from 'rollup-plugin-sourcemaps';
 
 const devMode = (process.env.NODE_ENV === 'development');
 console.log(`${devMode ? 'development' : 'production'} mode bundle`);
@@ -37,6 +37,14 @@ const minesm = terser({
   output: { quote_style: 1 }
 });
 
+
+const dbg = {
+  external: [],
+  input: './src/index.mjs',
+  output: [
+    { file: 'dist/io.greenscreens.quark.js', sourcemap: false, format: 'esm', plugins: [] }
+  ]
+};
 
 const dist = {
   external: [],

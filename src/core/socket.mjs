@@ -108,18 +108,21 @@ export default class SocketChannel extends Event {
 		const me = this;
 		const engine = me.#engine;
 		const generator = engine.Generator;
-
+		const security = engine.Security;
+	
 		const challenge = Date.now();
 		const url = new URL(engine.serviceURL);
 
-		const headers = Object.assign({}, engine.headers || {});
+		//const headers = Object.assign({}, engine.headers || {});
 		const querys = Object.assign({}, engine.querys || {});
 		querys.q = challenge;
 		querys.c = Streams.isAvailable;
 
 		Object.entries(querys || {}).forEach((v) => {
-			url.searchParams.append(v[0], encodeURIComponent(v[1]));
+			if (v[1]) url.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
+
+		security.updateCookie();
 
 		me.#webSocket = new WebSocket(url.toString(), ['ws4is']);
 		me.#webSocket.binaryType = "arraybuffer";
