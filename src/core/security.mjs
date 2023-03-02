@@ -19,9 +19,13 @@ export default class Security {
     #aesKey = null;
 
     get publicKey() { return this.#publicKey;}
-    
+
+    cookie(path = "/") {
+        return `gs-public-key=${this.#publicKey||''};path=${path}`;
+    }
+
     updateCookie(path = "/") {
-        document.cookie = `gs-public-key=${this.#publicKey||''};path=${path}`;
+        document.cookie = this.cookie(path);
     }
 
     /**
