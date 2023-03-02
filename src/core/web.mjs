@@ -60,7 +60,6 @@ export default class WebChannel {
 		req = req.detail;
 		const me = this;
 		let o = null;
-		let e = null;
 
 		if (req.id !== me.#engine.id) return;
 

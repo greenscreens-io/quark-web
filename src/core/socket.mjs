@@ -109,11 +109,11 @@ export default class SocketChannel extends Event {
 		const engine = me.#engine;
 		const generator = engine.Generator;
 		const security = engine.Security;
-	
+
 		const challenge = Date.now();
 		const url = new URL(engine.serviceURL);
 
-		//const headers = Object.assign({}, engine.headers || {});
+		// const headers = Object.assign({}, engine.headers || {});
 		const querys = Object.assign({}, engine.querys || {});
 		querys.q = challenge;
 		querys.c = Streams.isAvailable;
@@ -172,7 +172,7 @@ export default class SocketChannel extends Event {
 				} else {
 					await me.#prepareTextMessage(event.data);
 				}
-			} catch(e) {
+			} catch (e) {
 				generator.emit('error', e);
 			}
 		};
@@ -187,7 +187,7 @@ export default class SocketChannel extends Event {
 		}
 		const isJSON = Streams.isJson(message);
 		if (isJSON) {
-			const text = new TextDecoder().decode(message);		
+			const text = new TextDecoder().decode(message);
 			me.#prepareTextMessage(text);
 		} else {
 			generator.emit('raw', message);

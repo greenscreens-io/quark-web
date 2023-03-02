@@ -18,7 +18,7 @@ export default class Request {
         me.#init();
     }
 
-    get(object, property, receiver) {
+    get(object, property) {
         const me = this;
         if (property === 'timeout') return me.timeout;
         if (property === 'finish') return me.callback.bind(me);

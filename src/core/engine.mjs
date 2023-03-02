@@ -37,7 +37,7 @@ export default class Engine {
 		me.cfg = null;
 		me.isWSAPI = false;
 		me.isWebChannel = false;
-		me.isSockChannel = false;
+		me.isSocketChannel = false;
 
 		me.Security = null;
 		me.Generator = null;
@@ -52,9 +52,9 @@ export default class Engine {
 		me.querys = cfg.querys || {};
 
 		me.isWebChannel = cfg.service.indexOf('http') === 0;
-		me.isSockChannel = cfg.service.indexOf('ws') === 0;
+		me.isSocketChannel = cfg.service.indexOf('ws') === 0;
 
-		if ((me.isWebChannel || me.isSockChannel) === false) {
+		if ((me.isWebChannel || me.isSocketChannel) === false) {
 			throw new Error(ERROR_MESSAGE);
 		}
 
@@ -76,7 +76,7 @@ export default class Engine {
 			await me.WebChannel.init(me);
 		}
 
-		if (me.isSockChannel) {
+		if (me.isSocketChannel) {
 			me.SocketChannel = new SocketChannel();
 			await me.SocketChannel.init(me);
 		}
