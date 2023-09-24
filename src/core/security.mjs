@@ -164,7 +164,7 @@ export default class Security {
 	}
 
 	static get isAvailable() {
-		return crypto.subtle != null;
+		return crypto.subtle ? true : false;
 	}
 
     /**

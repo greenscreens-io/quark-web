@@ -4,8 +4,8 @@
 
 import Generator from "./Generator.mjs";
 import Security from "./Security.mjs";
-import SocketChannel from "./Socket.mjs";
-import WebChannel from "./Web.mjs";
+import SocketChannel from "./SocketChannel.mjs";
+import WebChannel from "./WebChannel.mjs";
 
 /**
  * Web and WebSocket API engine
@@ -18,7 +18,22 @@ const ERROR_SVC_UNDEFINED = 'Service Url not defined!';
 /**
  * Main class for Quark Engine Client
  */
-export default class Engine {
+export default class QuarkEngine {
+
+	#cfg = null;
+	#isWSAPI = false;
+	#isWebChannel = false;
+	#isSocketChannel = false;
+
+	#Security = null;
+	#Generator = null;
+	#WebChannel = null;
+	#SocketChannel = null;
+
+	#headers = null;
+	#querys = null;
+
+	#id = null;
 
 	constructor(cfg) {
 
@@ -34,25 +49,25 @@ export default class Engine {
 
 		const me = this;
 
-		me.cfg = null;
-		me.isWSAPI = false;
-		me.isWebChannel = false;
-		me.isSocketChannel = false;
+		me.#cfg = null;
+		me.#isWSAPI = false;
+		me.#isWebChannel = false;
+		me.#isSocketChannel = false;
 
-		me.Security = null;
-		me.Generator = null;
-		me.WebChannel = null;
-		me.SocketChannel = null;
-		me.id = Date.now();
+		me.#Security = null;
+		me.#Generator = null;
+		me.#WebChannel = null;
+		me.#SocketChannel = null;
+		me.#id = Date.now();
 
-		me.cfg = cfg;
-		me.isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
+		me.#cfg = cfg;
+		me.#isWSAPI = cfg.api === cfg.service && cfg.api.indexOf('ws') == 0;
 
-		me.headers = cfg.headers || {};
-		me.querys = cfg.querys || {};
+		me.#headers = cfg.headers || {};
+		me.#querys = cfg.querys || {};
 
-		me.isWebChannel = cfg.service.indexOf('http') === 0;
-		me.isSocketChannel = cfg.service.indexOf('ws') === 0;
+		me.#isWebChannel = cfg.service.indexOf('http') === 0;
+		me.#isSocketChannel = cfg.service.indexOf('ws') === 0;
 
 		if ((me.isWebChannel || me.isSocketChannel) === false) {
 			throw new Error(ERROR_MESSAGE);
@@ -68,16 +83,16 @@ export default class Engine {
 		const me = this;
 		if (me.isActive) return;
 
-		me.Security = new Security();
-		me.Generator = new Generator(me.id);
+		me.#Security = new Security();
+		me.#Generator = new Generator(me.id);
 
 		if (me.isWebChannel || me.isWSAPI == false) {
-			me.WebChannel = new WebChannel();
+			me.#WebChannel = new WebChannel();
 			await me.WebChannel.init(me);
 		}
 
 		if (me.isSocketChannel) {
-			me.SocketChannel = new SocketChannel();
+			me.#SocketChannel = new SocketChannel();
 			await me.SocketChannel.init(me);
 		}
 
@@ -94,9 +109,7 @@ export default class Engine {
 
 		// initialize encryption if provided
 		if (data.signature) {
-			if (!me.Security?.isActive) {
-				await me.Security.init(data);
-			}
+			await me.Security?.init(data);
 		}
 
 		me.Generator?.build(data.api);
@@ -114,11 +127,11 @@ export default class Engine {
 		me.SocketChannel?.stop();
 		me.Generator?.stop();
 
-		me.WebChannel = null;
-		me.SocketChannel = null;
-		me.Generator = null;
-		me.Security = null;
-		me.cfg = null;
+		me.#WebChannel = null;
+		me.#SocketChannel = null;
+		me.#Generator = null;
+		me.#Security = null;
+		me.#cfg = null;
 	}
 
 	/*
@@ -151,11 +164,25 @@ export default class Engine {
 		return this.cfg?.service || null;
 	}
 
+	get cfg() { return this.#cfg };
+	get isWSAPI() { return this.#isWSAPI };
+	get isWebChannel() { return this.#isWebChannel };
+	get isSocketChannel() { return this.#isSocketChannel };
+
+	get Security() { return this.#Security };
+	get Generator() { return this.#Generator };
+	get WebChannel() { return this.#WebChannel };
+	get SocketChannel() { return this.#SocketChannel };
+
+	get headers() { return this.#headers };
+	get querys() { return this.#querys };
+	get id() { return this.#id };
+
 	/*
 	 * Static instance builder
 	 */
 	static async init(cfg) {
-		const engine = new Engine(cfg);
+		const engine = new QuarkEngine(cfg);
 		return engine.init();
 	}
 }

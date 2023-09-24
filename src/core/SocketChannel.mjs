@@ -57,7 +57,7 @@ export default class SocketChannel extends Event {
 	 * @param {Object} req
 	 */
 	#canEncrypt(req) {
-		const hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.enc !== false;
+		const hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.enc;
 		return this.#engine.Security.isValid && hasArgs;
 	}
 
@@ -172,7 +172,7 @@ export default class SocketChannel extends Event {
 				} else {
 					await me.#prepareTextMessage(event.data);
 				}
-			} catch (e) {
+			} catch(e) {
 				generator.emit('error', e);
 			}
 		};
