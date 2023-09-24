@@ -2,7 +2,7 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import Event from "./Event.mjs";
+import EventExt from "./EventExt.mjs";
 import Request from "./Request.mjs";
 
 /**
@@ -10,7 +10,7 @@ import Request from "./Request.mjs";
  * Used to call remote services.
  * All Direct functions linked to defiend namespace
  */
-export default class Generator extends Event {
+export default class Generator extends EventExt {
 
 	#model = {};
 	#id = null;

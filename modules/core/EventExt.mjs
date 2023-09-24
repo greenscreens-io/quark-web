@@ -10,26 +10,22 @@
 /**
  * Extends native event by adding helper functions
  */
-export default class Event extends EventTarget {
+export default class EventExt extends EventTarget {
 
     #listeners = new Set();
 
     #list(type = '', listener) {
         const me = this;
         const list = Array.from(me.#listeners);
-        return me.#isFunction(listener) ? 
+        return EventExt.#isFunction(listener) ? 
             list.filter(o => o.type === type && o.listener === listener)
             :
             list.filter(o => o.type === type);
     }
 
-    #isFunction(fn) {
-        return typeof fn === 'function';
-    }
-
     addEventListener(type, listener, opt) {
         const me = this;
-        if (!me.#isFunction(listener)) return false;
+        if (!EventExt.#isFunction(listener)) return false;
         me.#listeners.add({ type: type, listener: listener });        
         return super.addEventListener(type, listener, opt);
     }
@@ -118,14 +114,18 @@ export default class Event extends EventTarget {
 		});
 	}
  
+    static #isFunction(fn) {
+        return typeof fn === 'function';
+    }
+
 	/**
 	 * Generic prevent event bubling
 	 * 
 	 * @param {Event} e 
 	 */
 	static prevent(e) {
-		if (Event.#isFunction(e, 'preventDefault')) e.preventDefault();
-		if (Event.#isFunction(e, 'stopPropagation')) e.stopPropagation();
+		if (EventExt.#isFunction(e, 'preventDefault')) e.preventDefault();
+		if (EventExt.#isFunction(e, 'stopPropagation')) e.stopPropagation();
 	}
 
     static {
