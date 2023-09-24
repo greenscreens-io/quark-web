@@ -40,7 +40,7 @@ const minesm = terser({
 
 const dbg = {
   external: [],
-  input: './src/index.mjs',
+  input: './modules/index.mjs',
   output: [
     { file: 'dist/io.greenscreens.quark.js', sourcemap: false, format: 'esm', plugins: [] }
   ]
@@ -48,7 +48,7 @@ const dbg = {
 
 const dist = {
   external: [],
-  input: './src/index.mjs',
+  input: './modules/index.mjs',
   output: [
     //{ file: 'release/io.greenscreens.quark.js', format: 'esm' },
     { file: 'dist/io.greenscreens.quark.min.js', sourcemap: true, format: 'esm', plugins: [minesm, sourcemaps] }
@@ -57,7 +57,7 @@ const dist = {
 
 const esm = {
   external: [],
-  input: './src/index.esm.mjs',
+  input: './modules/index.esm.mjs',
   output: [
     //{ file: 'release/io.greenscreens.quark.esm.js', format: 'esm' },
     { file: 'dist/io.greenscreens.quark.esm.min.js', sourcemap: true, format: 'esm', plugins: [minesm, sourcemaps] }
