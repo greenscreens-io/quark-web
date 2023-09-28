@@ -16,6 +16,7 @@ export default class SocketChannel extends EventExt {
 	#queue = new Queue();
 	#webSocket = null;
 	#engine = null;
+	#iid = 0;
 
 	/**
 	 * Initialize Socket channel
@@ -52,17 +53,26 @@ export default class SocketChannel extends EventExt {
 	}
 
 	/**
-	 * Check if data can be encrypted
-	 *
-	 * @param {Object} req
+	 * Must be here, if encryption and compression is not available, 
+	 * for server to regoznize Quark data format.
+	 * @param {*} req 
+	 * @returns 
 	 */
-	#canEncrypt(req) {
-		const hasArgs = Array.isArray(req.data) && req.data.length > 0 && req.enc;
-		return this.#engine.Security.isValid && hasArgs;
+	#wrap(cmd, req) {
+		const data = {
+			type: 'GS',
+			cmd : cmd,
+			data: req ? [req] : null
+		};
+		return JSON.stringify(data);
+	}
+
+	get #ping() {
+		return this.#wrap('ping');
 	}
 
 	/**
-	 * Prepare remote call, encrypt if avaialble
+	 * Prepare remote call, encrypt if available
 	 *
 	 * @param {Object} req
 	 *         Data to send (optionaly encrypt)
@@ -72,35 +82,14 @@ export default class SocketChannel extends EventExt {
 		req = req.detail;
 
 		const me = this;
-		let msg = null;
 
 		if (req.id !== me.#engine.id) return;
 
-		const isEncrypt = me.#canEncrypt(req);
-
 		me.#queue.updateRequest(req);
 
-		// encrypt if supported
-		if (isEncrypt) {
-			const enc = await me.#engine.Security.encrypt(req.data);
-			const payload = Object.assign({}, me.#engine.querys || {}, enc || {});
-			req.data = [payload];
-		}
-
-		const data = {
-			cmd: isEncrypt ? 'enc' : 'data',
-			type: 'ws',
-			data: [req]
-		};
-
-		msg = JSON.stringify(data);
-
-		if (!Streams.isAvailable) {
-			return me.#webSocket.send(msg);
-		}
-
-		msg = await Streams.compress(msg).arrayBuffer();
-		me.#webSocket.send(msg);
+		const msg = me.#wrap('data', req);
+		const raw = await Streams.wrap(msg, me.#engine.Security);
+		me.#webSocket.send(raw);
 	}
 
 	async #startSocket(resolve, reject) {
@@ -124,7 +113,7 @@ export default class SocketChannel extends EventExt {
 
 		security.updateCookie();
 
-		me.#webSocket = new WebSocket(url.toString(), ['ws4is']);
+		me.#webSocket = new WebSocket(url.toString(), ['quark']);
 		me.#webSocket.binaryType = "arraybuffer";
 
 		const onCall = me.#onCall.bind(me);
@@ -133,6 +122,7 @@ export default class SocketChannel extends EventExt {
 
 			me.emit('online', event);
 			generator.on('call', onCall);
+			me.#initPing();
 
 			if (!engine.isWSAPI) {
 				return resolve(true);
@@ -154,6 +144,7 @@ export default class SocketChannel extends EventExt {
 
 		me.#webSocket.onclose = (event) => {
 			generator.off('call', onCall);
+			clearInterval(me.#iid);
 			me.stop();
 			me.emit('offline', event);
 		}
@@ -172,25 +163,36 @@ export default class SocketChannel extends EventExt {
 				} else {
 					await me.#prepareTextMessage(event.data);
 				}
-			} catch(e) {
+			} catch (e) {
+				e.data = event;
 				generator.emit('error', e);
 			}
 		};
 
 	}
+	
+	#initPing() {
+		const me = this;
+		me.#iid = setInterval(() => {
+			me.send(me.#ping);
+		}, 15 * 1000);	
+	}
 
 	async #prepareBinaryMessage(message) {
+
 		const me = this;
-		if (Streams.isAvailable && Streams.isCompressed(message)) {
-			const resp = Streams.decompress(message);
-			message = await resp.arrayBuffer();
-		}
+		const engine = me.#engine;
+		const security = engine.Security;
+
+		message = await Streams.unwrap(message, security);
+
 		const isJSON = Streams.isJson(message);
-		if (isJSON) {
-			const text = new TextDecoder().decode(message);
-			me.#prepareTextMessage(text);
+		if (!isJSON) return	generator.emit('raw', message);
+
+		if (Array.isArray(message)) {
+			message.forEach(m => me.#onMessage(m));
 		} else {
-			generator.emit('raw', message);
+			me.#onMessage(message);
 		}
 	}
 
@@ -209,13 +211,15 @@ export default class SocketChannel extends EventExt {
 		try {
 			const isJSON = Streams.isJson(message);
 
-			if (isJSON) {
-				const obj = JSON.parse(message);
-				me.#onMessage(obj);
+			if (!isJSON) return generator.emit('raw', message);
+			
+			message = JSON.parse(message);
+			if (Array.isArray(message)) {
+				message.forEach(m => me.#onMessage(m));
 			} else {
-				generator.emit('raw', message);
+				me.#onMessage(obj);
 			}
-
+			
 		} catch (e) {
 			generator.emit('error', e);
 		}
@@ -235,7 +239,6 @@ export default class SocketChannel extends EventExt {
 
 		const engine = me.#engine;
 		const generator = engine.Generator;
-		const security = engine.Security;
 
 		if (obj.cmd === 'api') {
 			return generator.emit('api', obj.data);
@@ -243,14 +246,6 @@ export default class SocketChannel extends EventExt {
 
 		if (obj.cmd === 'err') {
 			return generator.emit('error', obj.result);
-		}
-
-		if (obj.cmd === 'enc') {
-			if (security.isValid) {
-				data = await security.decrypt(obj);
-			} else {
-				return generator.emit('error', new Error('Security available on https/wss only'));
-			}
 		}
 
 		if (obj.cmd === 'data') {

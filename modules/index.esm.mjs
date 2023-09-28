@@ -7,4 +7,4 @@ export { default as Request } from './core/Request.mjs';
 export { default as Generator } from './core/Generator.mjs';
 export { default as SocketChannel } from './core/SocketChannel.mjs';
 export { default as WebChannel } from './core/WebChannel.mjs';
-export { default as QuarkEngine } from "./core/QuarkEngine.mjs";
+export { default as QuarkEngine } from './core/QuarkEngine.mjs';

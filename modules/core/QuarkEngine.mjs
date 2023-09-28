@@ -169,14 +169,14 @@ export default class QuarkEngine {
 	get isWebChannel() { return this.#isWebChannel };
 	get isSocketChannel() { return this.#isSocketChannel };
 
-	get Security() { return this.#Security };
-	get Generator() { return this.#Generator };
-	get WebChannel() { return this.#WebChannel };
-	get SocketChannel() { return this.#SocketChannel };
+	get Security() { return this.#Security; }
+	get Generator() { return this.#Generator; }
+	get WebChannel() { return this.#WebChannel; }
+	get SocketChannel() { return this.#SocketChannel; }
 
-	get headers() { return this.#headers };
-	get querys() { return this.#querys };
-	get id() { return this.#id };
+	get headers() { return this.#headers; }
+	get querys() { return this.#querys; }
+	get id() { return this.#id; }
 
 	/*
 	 * Static instance builder

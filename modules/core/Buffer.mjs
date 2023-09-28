@@ -63,12 +63,16 @@ export default class Buffer {
         return me.validateData(data);
     }
     
-	static fromText(value) {
-		return Buffer.#encoder.encode(value);
+	static toText(val) {		
+		return Buffer.isText(val) ? val : Buffer.#decoder.decode(val);
 	}
-	
-	static toText(value) {
-		return Buffer.#decoder.decode(value);
+
+	static fromText(val) {		
+		return Buffer.isText(val) ? Buffer.#encoder.encode(val) : val;
+	}
+
+	static isText(val) {
+		return typeof val === 'string';
 	}
 	
 	static fromHex(value) {

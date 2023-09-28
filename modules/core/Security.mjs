@@ -13,7 +13,7 @@ import Buffer from "./Buffer.mjs";
 export default class Security {
 
     static #ECDH_TYPE = { name: 'ECDH', namedCurve: "P-256" };
-    static #AES_TYPE= { name: "AES-CTR", length: 128 };
+    static #AES_TYPE= { name: "AES-CTR", length: 256 };
     
     #publicKey = null;
     #aesKey = null;
@@ -106,10 +106,18 @@ export default class Security {
     #deriveAES(priv, pub) {
         const pubDef = { name: "ECDH", public: pub };
         const use = ['encrypt', 'decrypt'];
-        const derivedKey = {name:'AES-CTR', length: 128};
-        return crypto.subtle.deriveKey(pubDef, priv, derivedKey, false, use);
+        const derivedKey = Security.#AES_TYPE;
+        const dbg = false; // globalThis.QUARK_DEBUG === true;
+        return crypto.subtle.deriveKey(pubDef, priv, derivedKey, dbg, use);
     }
 
+	#toAlgo(iv) {
+        iv = Buffer.toBuffer(iv);
+        const type = Object.assign({counter: iv}, Security.#AES_TYPE);
+        type.length = 128;
+        return type;		
+	}
+	
     /**
 	 * Create random bytes
 	 *
@@ -125,27 +133,35 @@ export default class Security {
     /**
      * Encrypt message with AES
      * @param {CryptoKey} key 
-     * @param {String|ArrayBuffer} iv IV as Hex string 
-     * @param {String|ArrayBuffer} data as Hex string 
+     * @param {ArrayBuffer} iv IV as Hex string 
+     * @param {ArrayBuffer} data as Hex string 
      */
     async encryptRaw(key, iv, data) {        
-        const ivbin = Buffer.toBuffer(iv);
         const databin = Buffer.toBuffer(data);
-        const type = Object.assign({counter: ivbin}, Security.#AES_TYPE);
+        const type = this.#toAlgo(iv);
         return crypto.subtle.encrypt(type, key, databin);
     }
 
     /**
      * Decrypt AES encrypted message
      * @param {CryptoKey} key 
-     * @param {String|ArrayBuffer} iv IV as Hex string 
-     * @param {String|ArrayBuffer} data as Hex string 
+     * @param {ArrayBuffer} iv IV as Hex string 
+     * @param {ArrayBuffer} data as Hex string 
      */
     async decryptRaw(key, iv, data) {
-        const ivbin = Buffer.toBuffer(iv);
         const databin = Buffer.toBuffer(data);
-        const type = Object.assign({counter: ivbin}, Security.#AES_TYPE);
+        const type = this.#toAlgo(iv);
         return crypto.subtle.decrypt(type, key, databin);
+    }
+
+    async decryptAsBuffer(key, iv, data) {   
+        const result = await this.decryptRaw(key, iv, data);
+        return Buffer.toBuffer(result);
+    }
+
+    async encryptAsBuffer(key, iv, data) {   
+        const result = await this.encryptRaw(key, iv, data);
+        return Buffer.toBuffer(result);
     }
 
     async decryptAsString(key, iv, data) {
@@ -189,50 +205,52 @@ export default class Security {
         me.#publicKey = await me.exportKey(keyPair.publicKey);
         me.#aesKey = await me.#deriveAES(keyPair.privateKey, publicKey);
         
+        /*
+        if (globalThis.QUARK_DEBUG) {
+			const raw = await me.exportKey(me.#aesKey);
+			console.log('DEBUG: Derived key :', raw);
+		}
+		*/
+		
 		console.log('Security Initialized!');
         
     }
 
     /**
-     * Data encryptor, encrypt aes with async and data with aes
-     */    
+     * Encrypt provided data
+     * @param {Uint8Array} data Data to encrypt
+     * @returns {Uint8Array} [head+iv+data]
+     */
     async encrypt(data) {
-
-		data = (typeof data === 'string') ? data : JSON.stringify(data);
-
         const me = this;
+        if (!me.isValid) return data;
+        if (! data instanceof Uint8Array) return data;
         const iv = me.getRandom(16);
-        
-        const d = await me.encryptAsHex(me.#aesKey, iv, data);
-        const k = Buffer.toHex(iv);
+        const d = await me.encryptAsBuffer(me.#aesKey, iv, data);
 
-        return { d: d, k: k, t: 1, b:6};
-
+        const raw = new Uint8Array(iv.length + d.length);
+        raw.set(iv, 0);
+        raw.set(d, iv.length);
+        return raw;
     }
 
 	/**
 	 * Decrypt received data in format {d:.., k:...}
 	 *
-	 * @param
-	 * 		cfg  - data elements to decrypt
-	 * 		cfg.d - aes encrypted server resposne
-	 * 		cfg.k - aes IV used for masking
-	 *
+	 * @param {ArrayBuffer|Uint8Array} data
+	 * @param {ArrayBuffer|Uint8Array} iv
+	 * @return 
 	 */
-	async decrypt(cfg) {
+	async decrypt(data, iv) {
 
 		const me = this;
-		const iv = cfg.iv;
-		const data = cfg.d;
-
-		const message = await me.decryptAsString(me.#aesKey, iv, data);
-		const obj = JSON.parse(message);
-
-		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
-			return obj.data;
+		
+		if (!iv) {
+			iv = data.slice(0, 16);
+			data = data.slice(16);
 		}
 
-		return obj;
+		return await me.decryptAsBuffer(me.#aesKey, iv, data);
 	}
 
 	static async init(cfg) {
