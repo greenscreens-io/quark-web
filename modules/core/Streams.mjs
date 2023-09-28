@@ -2,7 +2,7 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import Buffer from './Buffer.mjs';
+import QuarkBuffer from './Buffer.mjs';
 
 /**
  * Browser native compression
@@ -26,7 +26,7 @@ export default class Streams {
 		const type = Streams.#dataType(encrypted, compressed);
 
 		const data = new Uint8Array(8 + raw.length);
-		const dv = new DataView(data.buffer);
+		const dv = new DataView(data.QuarkBuffer);
 		dv.setUint8(0, 71);
 		dv.setUint8(1, 83);
 		dv.setUint8(2, 5);
@@ -48,7 +48,7 @@ export default class Streams {
 		raw = Streams.#toGS(raw, security.isValid, Streams.isAvailable);
 		/*
 		if (globalThis.QUARK_DEBUG) {
-			console.log('DEBUG: Output :', Buffer.toHex(raw));
+			console.log('DEBUG: Output :', QuarkBuffer.toHex(raw));
 		}
 		*/
 		return raw;
@@ -61,11 +61,11 @@ export default class Streams {
 	 */
 	static async unwrap(raw, security) {
 
-		if (raw instanceof Uint8Array) raw = raw.buffer;
+		if (raw instanceof Uint8Array) raw = raw.QuarkBuffer;
 
 		/*
 		if (globalThis.QUARK_DEBUG) {
-			console.log('DEBUG: Input :', Buffer.toHex(raw));
+			console.log('DEBUG: Input :', QuarkBuffer.toHex(raw));
 		}
 		*/
 
@@ -90,13 +90,13 @@ export default class Streams {
 		}
 
 		if (isCompress) {
-			raw = await Streams.decompress(raw).arrayBuffer();
+			raw = await Streams.decompress(raw).arrayQuarkBuffer();
 		}
 
 		raw = Streams.toBinary(raw);
 		if (!Streams.isJson(raw)) throw new Error('Invalid response');
 
-		return JSON.parse(Buffer.toText(raw));
+		return JSON.parse(QuarkBuffer.toText(raw));
 
 	}
 
@@ -139,7 +139,7 @@ export default class Streams {
 	 */
 	static async compressOrDefault(data, encoding = 'gzip') {
 		if (!Streams.isAvailable) return data;
-		const raw = await Streams.compress(data, encoding).arrayBuffer();
+		const raw = await Streams.compress(data, encoding).arrayQuarkBuffer();
 		return Streams.toBinary(raw);
 	}
 
@@ -151,7 +151,7 @@ export default class Streams {
 	 */
 	static async decompressOrDefault(data, encoding = 'gzip') {
 		if (!Streams.isAvailable) return data;
-		const raw = await Streams.decompress(data, encoding).arrayBuffer();
+		const raw = await Streams.decompress(data, encoding).arrayQuarkBuffer();
 		return Streams.toBinary(raw);
 	}
 
@@ -179,14 +179,14 @@ export default class Streams {
 
 	static toBinary(data) {
 		if (data instanceof Uint8Array) return data;
-		if (data instanceof ArrayBuffer) return new Uint8Array(data);
-		if (typeof data === 'string') return Buffer.fromText(data);
+		if (data instanceof ArrayQuarkBuffer) return new Uint8Array(data);
+		if (typeof data === 'string') return QuarkBuffer.fromText(data);
 		return this.toBinary(JSON.stringify(data));
 	}
 
 	/**
 	 * If  1st 2 bytes mathes gzip/deflate header signature
-	 * @param {ArrayBuffer|Uint8Array} data 
+	 * @param {ArrayQuarkBuffer|Uint8Array} data 
 	 */
 	static isCompressed(data) {
 		const me = this;
@@ -201,7 +201,7 @@ export default class Streams {
 	 * 1F 8B 08
 	 * 31 139 8
 	 * 
-	 * @param {ArrayBuffer|Uint8Array} data 
+	 * @param {ArrayQuarkBuffer|Uint8Array} data 
 	 */
 	static isGzip(data) {
 		return data.at(0) === 31 && data.at(1) === 139 && data.at(2) === 8;
@@ -213,7 +213,7 @@ export default class Streams {
 	 * deflate
 	 * 78  (01, 5e,9c, da) 
 	 * 120 (1, 94, 156, 218)
-	 * @param {ArrayBuffer|Uint8Array} data 
+	 * @param {ArrayQuarkBuffer|Uint8Array} data 
 	 */
 	static isZlib(data) {
 		return data.at(0) === 120 && [1, 94, 156, 218].indexOf(data.at(1)) > -1;

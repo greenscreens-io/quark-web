@@ -2,7 +2,7 @@
  * Copyright (C) 2015, 2023 Green Screens Ltd.
  */
 
-export default class Buffer {
+export default class QuarkBuffer {
 
     static #encoder = new TextEncoder();
     static #decoder = new TextDecoder();
@@ -17,16 +17,16 @@ export default class Buffer {
         let data = null;
         if (src instanceof Array) {
             data = new Uint8Array(src);
-        } else if (src instanceof ArrayBuffer) {
+        } else if (src instanceof ArrayQuarkBuffer) {
             data = new Uint8Array(src);
         } else if (src instanceof Uint8Array) {
             data = src;
         } else if (src instanceof String || typeof src === 'string') {
-            data = Buffer.fromText(src);
-        } else if (src.toArrayBuffer) {
-            data = new Uint8Array(src.toArrayBuffer());
+            data = QuarkBuffer.fromText(src);
+        } else if (src.toArrayQuarkBuffer) {
+            data = new Uint8Array(src.toArrayQuarkBuffer());
         } else {
-            throw "Invalid input, must be String or ArrayBuffer or Uint8Array";
+            throw "Invalid input, must be String or ArrayQuarkBuffer or Uint8Array";
         }
         return data;
     }
@@ -46,11 +46,11 @@ export default class Buffer {
      * @returns 
      */
     static isHexString(data) {
-        return Buffer.isString(data) ? (/^[0-9A-Fa-f]+$/g).test(data) : false;
+        return QuarkBuffer.isString(data) ? (/^[0-9A-Fa-f]+$/g).test(data) : false;
     }
 
-    static toBuffer(data, b64 = false) {
-        const me = Buffer;
+    static toQuarkBuffer(data, b64 = false) {
+        const me = QuarkBuffer;
         if (me.isString(data)) {
             if (b64) {
                 data = me.fromBase64(data);
@@ -64,11 +64,11 @@ export default class Buffer {
     }
 
     static toText(val) {
-        return Buffer.isText(val) ? val : Buffer.#decoder.decode(val);
+        return QuarkBuffer.isText(val) ? val : QuarkBuffer.#decoder.decode(val);
     }
 
     static fromText(val) {
-        return Buffer.isText(val) ? Buffer.#encoder.encode(val) : val;
+        return QuarkBuffer.isText(val) ? QuarkBuffer.#encoder.encode(val) : val;
     }
 
     static isText(val) {
@@ -86,15 +86,15 @@ export default class Buffer {
         return new Uint8Array(arry);
     }
 
-    static toHex(buffer) {
-        return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+    static toHex(QuarkBuffer) {
+        return Array.prototype.map.call(new Uint8Array(QuarkBuffer), x => ('00' + x.toString(16)).slice(-2)).join('');
     }
 
     static fromBase64(value) {
 
         const strbin = atob(value);
-        const buffer = new ArrayBuffer(strbin.length);
-        const bufView = new Uint8Array(buffer);
+        const QuarkBuffer = new ArrayQuarkBuffer(strbin.length);
+        const bufView = new Uint8Array(QuarkBuffer);
 
         for (let i = 0, strLen = strbin.length; i < strLen; i++) {
             bufView[i] = strbin.charCodeAt(i);
@@ -103,8 +103,8 @@ export default class Buffer {
         return bufView;
     }
 
-    static toBase64(buffer) {
-        return globalThis.btoa(new Uint8Array(buffer));
+    static toBase64(QuarkBuffer) {
+        return globalThis.btoa(new Uint8Array(QuarkBuffer));
     }
 
 }

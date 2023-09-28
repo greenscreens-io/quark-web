@@ -2,7 +2,7 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import EventExt from "./EventExt.mjs";
+import QuarkEvent from "./Event.mjs";
 import Queue from "./Queue.mjs";
 import Streams from "./Streams.mjs";
 
@@ -11,7 +11,7 @@ import Streams from "./Streams.mjs";
  * Used to call remote services.
  * All Direct functions linked to io.greenscreens namespace
  */
-export default class SocketChannel extends EventExt {
+export default class SocketChannel extends QuarkEvent {
 
 	#queue = new Queue();
 	#webSocket = null;

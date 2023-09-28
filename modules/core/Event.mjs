@@ -10,14 +10,14 @@
 /**
  * Extends native event by adding helper functions
  */
-export default class EventExt extends EventTarget {
+export default class QuarkEvent extends EventTarget {
 
     #listeners = new Set();
 
     #list(type = '', listener) {
         const me = this;
         const list = Array.from(me.#listeners);
-        return EventExt.#isFunction(listener) ?
+        return QuarkEvent.#isFunction(listener) ?
             list.filter(o => o.type === type && o.listener === listener)
             :
             list.filter(o => o.type === type);
@@ -25,7 +25,7 @@ export default class EventExt extends EventTarget {
 
     addEventListener(type, listener, opt) {
         const me = this;
-        if (!EventExt.#isFunction(listener)) return false;
+        if (!QuarkEvent.#isFunction(listener)) return false;
         me.#listeners.add({ type: type, listener: listener });
         return super.addEventListener(type, listener, opt);
     }
@@ -124,8 +124,8 @@ export default class EventExt extends EventTarget {
      * @param {Event} e 
      */
     static prevent(e) {
-        if (EventExt.#isFunction(e, 'preventDefault')) e.preventDefault();
-        if (EventExt.#isFunction(e, 'stopPropagation')) e.stopPropagation();
+        if (QuarkEvent.#isFunction(e, 'preventDefault')) e.preventDefault();
+        if (QuarkEvent.#isFunction(e, 'stopPropagation')) e.stopPropagation();
     }
 
     static {

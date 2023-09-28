@@ -8,7 +8,7 @@
  *
  */
 
-import Buffer from "./Buffer.mjs";
+import QuarkBuffer from "./Buffer.mjs";
 
 export default class Security {
 
@@ -48,7 +48,7 @@ export default class Security {
      * @param {String} mode Comma separted list of key usages 
      */
     static async importKey(key, type, mode) {
-        const der = Buffer.fromBase64(key);
+        const der = QuarkBuffer.fromBase64(key);
         const use = mode ? mode.split(',') : [];
         return crypto.subtle.importKey('spki', der, type, true, use);
     }
@@ -60,19 +60,19 @@ export default class Security {
      */
     static async exportKey(key) {
         const ab = await crypto.subtle.exportKey('raw', key);
-        return Buffer.toHex(ab);
+        return QuarkBuffer.toHex(ab);
     }
 
     /**
      * Verify signature
      *
      * @param {CryptoKey} Public key used for verification
-     * @param {ArrayBuffer} signature Signature of received data
-     * @param {ArrayBuffer} challenge Challenge to verify with signature (ts + pemENCDEC + pemVERSGN)
+     * @param {ArrayQuarkBuffer} signature Signature of received data
+     * @param {ArrayQuarkBuffer} challenge Challenge to verify with signature (ts + pemENCDEC + pemVERSGN)
      */
     static async verify(key, signature, challenge) {
-        signature = Buffer.fromBase64(signature);
-        challenge = Buffer.toBuffer(challenge);
+        signature = QuarkBuffer.fromBase64(signature);
+        challenge = QuarkBuffer.toQuarkBuffer(challenge);
         const type = { name: "ECDSA", hash: { name: "SHA-384" } };
         return crypto.subtle.verify(type, key, signature, challenge);
     }
@@ -126,7 +126,7 @@ export default class Security {
     }
 
     #toAlgo(iv) {
-        iv = Buffer.toBuffer(iv);
+        iv = QuarkBuffer.toQuarkBuffer(iv);
         const type = Object.assign({ counter: iv }, Security.#AES_TYPE);
         type.length = 128;
         return type;
@@ -135,11 +135,11 @@ export default class Security {
     /**
      * Encrypt message with AES
      * @param {CryptoKey} key 
-     * @param {ArrayBuffer} iv IV as Hex string 
-     * @param {ArrayBuffer} data as Hex string 
+     * @param {ArrayQuarkBuffer} iv IV as Hex string 
+     * @param {ArrayQuarkBuffer} data as Hex string 
      */
     async encryptRaw(key, iv, data) {
-        const databin = Buffer.toBuffer(data);
+        const databin = QuarkBuffer.toQuarkBuffer(data);
         const type = this.#toAlgo(iv);
         return crypto.subtle.encrypt(type, key, databin);
     }
@@ -147,33 +147,33 @@ export default class Security {
     /**
      * Decrypt AES encrypted message
      * @param {CryptoKey} key 
-     * @param {ArrayBuffer} iv IV as Hex string 
-     * @param {ArrayBuffer} data as Hex string 
+     * @param {ArrayQuarkBuffer} iv IV as Hex string 
+     * @param {ArrayQuarkBuffer} data as Hex string 
      */
     async decryptRaw(key, iv, data) {
-        const databin = Buffer.toBuffer(data);
+        const databin = QuarkBuffer.toQuarkBuffer(data);
         const type = this.#toAlgo(iv);
         return crypto.subtle.decrypt(type, key, databin);
     }
 
-    async decryptAsBuffer(key, iv, data) {
+    async decryptAsQuarkBuffer(key, iv, data) {
         const result = await this.decryptRaw(key, iv, data);
-        return Buffer.toBuffer(result);
+        return QuarkBuffer.toQuarkBuffer(result);
     }
 
-    async encryptAsBuffer(key, iv, data) {
+    async encryptAsQuarkBuffer(key, iv, data) {
         const result = await this.encryptRaw(key, iv, data);
-        return Buffer.toBuffer(result);
+        return QuarkBuffer.toQuarkBuffer(result);
     }
 
     async decryptAsString(key, iv, data) {
         const result = await this.decryptRaw(key, iv, data);
-        return Buffer.toText(result);
+        return QuarkBuffer.toText(result);
     }
 
     async encryptAsHex(key, iv, data) {
         const result = await this.encryptRaw(key, iv, data);
-        return Buffer.toHex(result);
+        return QuarkBuffer.toHex(result);
     }
 
     get isValid() {
@@ -226,7 +226,7 @@ export default class Security {
         if (!me.isValid) return data;
         if (!data instanceof Uint8Array) return data;
         const iv = Security.getRandom(16);
-        const d = await me.encryptAsBuffer(me.#aesKey, iv, data);
+        const d = await me.encryptAsQuarkBuffer(me.#aesKey, iv, data);
 
         const raw = new Uint8Array(iv.length + d.length);
         raw.set(iv, 0);
@@ -237,8 +237,8 @@ export default class Security {
     /**
      * Decrypt received data in format {d:.., k:...}
      *
-     * @param {ArrayBuffer|Uint8Array} data
-     * @param {ArrayBuffer|Uint8Array} iv
+     * @param {ArrayQuarkBuffer|Uint8Array} data
+     * @param {ArrayQuarkBuffer|Uint8Array} iv
      * @return 
      */
     async decrypt(data, iv) {
@@ -250,7 +250,7 @@ export default class Security {
             data = data.slice(16);
         }
 
-        return await me.decryptAsBuffer(me.#aesKey, iv, data);
+        return await me.decryptAsQuarkBuffer(me.#aesKey, iv, data);
     }
 
     async #preInit() {

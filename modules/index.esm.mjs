@@ -1,5 +1,5 @@
-export { default as Buffer } from './core/Buffer.mjs';
-export { default as EventExt } from './core/EventExt.mjs';
+export { default as QuarkBuffer } from './core/Buffer.mjs';
+export { default as QuarkEvent } from './core/Event.mjs';
 export { default as Streams } from './core/Streams.mjs';
 export { default as Security } from './core/Security.mjs';
 export { default as Queue } from './core/Queue.mjs';
