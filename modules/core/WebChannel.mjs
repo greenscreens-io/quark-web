@@ -107,7 +107,7 @@ export default class WebChannel {
 		return data;
 
 	}
-	
+
 	get #accept() {
 		return `${WebChannel.#MIME_BINARY}, ${WebChannel.#MIME_JSON}`;
 	}
@@ -131,7 +131,7 @@ export default class WebChannel {
 			'Content-Type': CONTENT_TYPE,
 			'Accept-Encoding': 'gzip,deflate,br'
 		};
-		
+
 		if (isCompress && Streams.isAvailable) {
 			data = Streams.toBinary(data);
 			data = await Streams.compressOrDefault(data);
@@ -164,14 +164,14 @@ export default class WebChannel {
 		if (isJson) return await res.json();
 		if (isPlain) {
 			const txt = await res.text();
-			if(!Streams.isJson(txt)) throw new Error('Invalid response');
+			if (!Streams.isJson(txt)) throw new Error('Invalid response');
 			return JSON.parse(txt);
 		}
 
 
 		const raw = await res.arrayBuffer();
 		const obj = await Streams.unwrap(raw, this.#engine.Security);
-		
+
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			return obj.data;
 		}
@@ -193,7 +193,7 @@ export default class WebChannel {
 		const security = engine.Security;
 		const url = engine.serviceURL;
 
-		const isEncrypt = security?.isValid;	
+		const isEncrypt = security?.isValid;
 		let isCompress = false;
 		let raw = null;
 

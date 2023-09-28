@@ -4,8 +4,8 @@
 
 export default class Buffer {
 
-	static #encoder = new TextEncoder();
-	static #decoder = new TextDecoder(); 
+    static #encoder = new TextEncoder();
+    static #decoder = new TextDecoder();
 
     /**
      * Detect data and convert to Uint8Array
@@ -30,13 +30,13 @@ export default class Buffer {
         }
         return data;
     }
-    
+
     /**
      * Verify if data is string
      * @param {*} data 
      * @returns 
      */
-     static isString(data) {
+    static isString(data) {
         return typeof data === 'string';
     }
 
@@ -48,63 +48,63 @@ export default class Buffer {
     static isHexString(data) {
         return Buffer.isString(data) ? (/^[0-9A-Fa-f]+$/g).test(data) : false;
     }
-    
+
     static toBuffer(data, b64 = false) {
         const me = Buffer;
         if (me.isString(data)) {
             if (b64) {
                 data = me.fromBase64(data);
-            } else  if (me.isHexString(data)) {
+            } else if (me.isHexString(data)) {
                 data = me.fromHex(data);
             } else {
                 data = me.fromText(data);
-            }   
-        }  
+            }
+        }
         return me.validateData(data);
     }
-    
-	static toText(val) {		
-		return Buffer.isText(val) ? val : Buffer.#decoder.decode(val);
-	}
 
-	static fromText(val) {		
-		return Buffer.isText(val) ? Buffer.#encoder.encode(val) : val;
-	}
+    static toText(val) {
+        return Buffer.isText(val) ? val : Buffer.#decoder.decode(val);
+    }
 
-	static isText(val) {
-		return typeof val === 'string';
-	}
-	
-	static fromHex(value) {
+    static fromText(val) {
+        return Buffer.isText(val) ? Buffer.#encoder.encode(val) : val;
+    }
 
-		const arry = [];
+    static isText(val) {
+        return typeof val === 'string';
+    }
 
-		for (let i = 0; i < value.length; i += 2) {
-			arry.push(parseInt("0x" + value.substr(i, 2), 16));
-		}
+    static fromHex(value) {
 
-		return new Uint8Array(arry);
-	}
+        const arry = [];
 
-	static toHex(buffer) {
-		return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-	}
-	
-	static fromBase64(value) {
+        for (let i = 0; i < value.length; i += 2) {
+            arry.push(parseInt("0x" + value.substr(i, 2), 16));
+        }
 
-		const strbin = atob(value);
-		const buffer = new ArrayBuffer(strbin.length);
-		const bufView = new Uint8Array(buffer);
+        return new Uint8Array(arry);
+    }
 
-		for (let i = 0, strLen = strbin.length; i < strLen; i++) {
-			bufView[i] = strbin.charCodeAt(i);
-		}
+    static toHex(buffer) {
+        return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+    }
 
-		return bufView;
-	}
+    static fromBase64(value) {
 
-	static toBase64(buffer) {
-		return globalThis.btoa(new Uint8Array(buffer));
-	}
+        const strbin = atob(value);
+        const buffer = new ArrayBuffer(strbin.length);
+        const bufView = new Uint8Array(buffer);
+
+        for (let i = 0, strLen = strbin.length; i < strLen; i++) {
+            bufView[i] = strbin.charCodeAt(i);
+        }
+
+        return bufView;
+    }
+
+    static toBase64(buffer) {
+        return globalThis.btoa(new Uint8Array(buffer));
+    }
 
 }

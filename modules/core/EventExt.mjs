@@ -17,7 +17,7 @@ export default class EventExt extends EventTarget {
     #list(type = '', listener) {
         const me = this;
         const list = Array.from(me.#listeners);
-        return EventExt.#isFunction(listener) ? 
+        return EventExt.#isFunction(listener) ?
             list.filter(o => o.type === type && o.listener === listener)
             :
             list.filter(o => o.type === type);
@@ -26,7 +26,7 @@ export default class EventExt extends EventTarget {
     addEventListener(type, listener, opt) {
         const me = this;
         if (!EventExt.#isFunction(listener)) return false;
-        me.#listeners.add({ type: type, listener: listener });        
+        me.#listeners.add({ type: type, listener: listener });
         return super.addEventListener(type, listener, opt);
     }
 
@@ -34,7 +34,7 @@ export default class EventExt extends EventTarget {
         const me = this;
         const list = me.#list(type, listener);
         list.forEach(o => super.removeEventListener(o.type, o.listener))
-        list.forEach(o => me.#listeners.delete(o)); 
+        list.forEach(o => me.#listeners.delete(o));
     }
 
     /**
@@ -97,36 +97,36 @@ export default class EventExt extends EventTarget {
         return this.dispatchEvent(evt);
     }
 
-    send(type, data) {this.emit(type, data);}
-    listen(type, listener) {this.on(type, listener);}
-    unlisten(type, listener) {this.off(type, listener);}
+    send(type, data) { this.emit(type, data); }
+    listen(type, listener) { this.on(type, listener); }
+    unlisten(type, listener) { this.off(type, listener); }
 
     /**
      * Wait for an event 
      * @param {string} type Event name to be listened
      * @returns {Event}
      */
-	wait(type = '') {
+    wait(type = '') {
         if (!type) return e('Event undefined!');
-		const me = this;
-		return new Promise((r, e) => {
-			me.once(type, (e) => r(e));
-		});
-	}
- 
+        const me = this;
+        return new Promise((r, e) => {
+            me.once(type, (e) => r(e));
+        });
+    }
+
     static #isFunction(fn) {
         return typeof fn === 'function';
     }
 
-	/**
-	 * Generic prevent event bubling
-	 * 
-	 * @param {Event} e 
-	 */
-	static prevent(e) {
-		if (EventExt.#isFunction(e, 'preventDefault')) e.preventDefault();
-		if (EventExt.#isFunction(e, 'stopPropagation')) e.stopPropagation();
-	}
+    /**
+     * Generic prevent event bubling
+     * 
+     * @param {Event} e 
+     */
+    static prevent(e) {
+        if (EventExt.#isFunction(e, 'preventDefault')) e.preventDefault();
+        if (EventExt.#isFunction(e, 'stopPropagation')) e.stopPropagation();
+    }
 
     static {
         Object.freeze(Event);
