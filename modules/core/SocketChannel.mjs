@@ -132,7 +132,7 @@ export default class SocketChannel extends EventExt {
 				try {
 					const data = e.detail;
 					data.challenge = challenge;
-					await engine.registerAPI(data);	
+					await engine.registerAPI(data);
 					resolve(true);
 				} catch (e) {
 					reject(e);

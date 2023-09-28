@@ -138,7 +138,7 @@ export default class Security {
      * @param {ArrayBuffer} iv IV as Hex string 
      * @param {ArrayBuffer} data as Hex string 
      */
-    async encryptRaw(key, iv, data) {        
+    async encryptRaw(key, iv, data) {
         const databin = Buffer.toBuffer(data);
         const type = this.#toAlgo(iv);
         return crypto.subtle.encrypt(type, key, databin);
@@ -201,7 +201,7 @@ export default class Security {
 
         await me.#initVerify(cfg);
 
-        const publicKey = await me.#initPublic(cfg);       
+        const publicKey = await me.#initPublic(cfg);
         me.#aesKey = await me.#deriveAES(me.#keyPair.privateKey, publicKey);
         me.#keyPair = null;
         
@@ -244,7 +244,7 @@ export default class Security {
 	async decrypt(data, iv) {
 
 		const me = this;
-		
+
 		if (!iv) {
 			iv = data.slice(0, 16);
 			data = data.slice(16);
