@@ -97,7 +97,6 @@ export default class SocketChannel extends EventExt {
 		const me = this;
 		const engine = me.#engine;
 		const generator = engine.Generator;
-		const security = engine.Security;
 
 		const challenge = Date.now();
 		const url = new URL(engine.serviceURL);
@@ -111,7 +110,7 @@ export default class SocketChannel extends EventExt {
 			if (v[1]) url.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
 
-		security.updateCookie();
+		engine.Security.updateCookie();
 
 		me.#webSocket = new WebSocket(url.toString(), ['quark']);
 		me.#webSocket.binaryType = "arraybuffer";
@@ -127,12 +126,13 @@ export default class SocketChannel extends EventExt {
 			if (!engine.isWSAPI) {
 				return resolve(true);
 			}
-
-			generator.once('api', async (data) => {
+			
+			generator.once('api', async (e) => {
 
 				try {
+					const data = e.detail;
 					data.challenge = challenge;
-					await engine.registerAPI(data);
+					await engine.registerAPI(data);	
 					resolve(true);
 				} catch (e) {
 					reject(e);
@@ -217,7 +217,7 @@ export default class SocketChannel extends EventExt {
 			if (Array.isArray(message)) {
 				message.forEach(m => me.#onMessage(m));
 			} else {
-				me.#onMessage(obj);
+				me.#onMessage(message);
 			}
 			
 		} catch (e) {

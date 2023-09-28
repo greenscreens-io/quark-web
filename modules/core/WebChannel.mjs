@@ -2,6 +2,7 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
+import Security from "./Security.mjs";
 import Streams from "./Streams.mjs";
 
 /**

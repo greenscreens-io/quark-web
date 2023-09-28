@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015, 2022 Green Screens Ltd.
+ * Copyright (C) 2015, 2023 Green Screens Ltd.
  */
 
 /**
@@ -16,27 +16,29 @@ export default class Security {
     static #AES_TYPE= { name: "AES-CTR", length: 256 };
     
     #publicKey = null;
+    #keyPair = null;
     #aesKey = null;
-
-    get publicKey() { return this.#publicKey;}
-
-    cookie(path = "/") {
-        return `gs-public-key=${this.#publicKey||''};path=${path}`;
-    }
-
-    updateCookie(path = "/") {
-        document.cookie = this.cookie(path);
-    }
+	
+    /**
+	 * Create random bytes
+	 *
+	 * @param {int} size
+	 *     length of data (required)
+	 */
+	static getRandom(size) {
+		const array = new Uint8Array(size);
+		crypto.getRandomValues(array);
+		return array;
+	}
 
     /**
-     *  Use local challenge, to verify received data signature
-     *
-     *  @param {Object} cfg Data received from server contins public key and signature
+     * Initialize browser ECDH key pair 
      */
-    #getChallenge(cfg) {
-        return [cfg.challenge || '', cfg.keyEnc || '', cfg.keyVer || ''].join('');
+    static initKeyPair() {
+        const use = ['deriveKey','deriveBits'];
+        return crypto.subtle.generateKey(Security.#ECDH_TYPE, true, use);
     }
-    
+        
     /**
      * Import Async key received from server
      * Key is publicKey used to send encrypted AES key
@@ -45,7 +47,7 @@ export default class Security {
      * @param {Object} type Crypto API key definition format
      * @param {String} mode Comma separted list of key usages 
      */
-    async importKey(key, type, mode) {
+    static async importKey(key, type, mode) {
         const der = Buffer.fromBase64(key);
         const use = mode ? mode.split(',') : [];
         return crypto.subtle.importKey('spki', der, type, true, use);
@@ -56,7 +58,7 @@ export default class Security {
      * @param {CryptoKey} key
      * @returns {string}
      */
-    async exportKey(key) {
+    static async exportKey(key) {
         const ab = await crypto.subtle.exportKey('raw',  key);
         return Buffer.toHex(ab);
     }
@@ -68,18 +70,38 @@ export default class Security {
      * @param {ArrayBuffer} signature Signature of received data
      * @param {ArrayBuffer} challenge Challenge to verify with signature (ts + pemENCDEC + pemVERSGN)
      */
-    async verify(key, signature, challenge) {
+    static async verify(key, signature, challenge) {
         signature = Buffer.fromBase64(signature);
         challenge = Buffer.toBuffer(challenge);
         const type = { name: "ECDSA", hash: { name: "SHA-384" } };
         return crypto.subtle.verify(type, key, signature, challenge);
     }
 
+	get publicKey() { return this.#publicKey;}
+	
+
+    cookie(path = "/") {
+        return `gs-public-key=${this.#publicKey||''};path=${path}`;
+    }
+
+    updateCookie(path = "/") {
+        document.cookie = this.cookie(path);
+    }
+	
+    /**
+     *  Use local challenge, to verify received data signature
+     *
+     *  @param {Object} cfg Data received from server contins public key and signature
+     */
+    #getChallenge(cfg) {
+        return [cfg.challenge || '', cfg.keyEnc || '', cfg.keyVer || ''].join('');
+    }
+
     async #initVerify(cfg) {
         const me = this;
         const type = { name: 'ECDSA', namedCurve: "P-384" };
-        const verKey = await me.importKey(cfg.keyVer, type, 'verify');
-        const status = await me.verify(verKey, cfg.signature, me.#getChallenge(cfg));
+        const verKey = await Security.importKey(cfg.keyVer, type, 'verify');
+        const status = await Security.verify(verKey, cfg.signature, me.#getChallenge(cfg));
         if (!status) throw new Error('Signature invalid');
     }
 
@@ -88,15 +110,7 @@ export default class Security {
      * @param {object} cfg 
      */
     #initPublic(cfg) {        
-        return this.importKey(cfg.keyEnc, Security.#ECDH_TYPE, '');
-    }
-
-    /**
-     * Initialize browser ECDH key pair 
-     */
-    #initKeyPair() {
-        const use = ['deriveKey','deriveBits'];
-        return crypto.subtle.generateKey(Security.#ECDH_TYPE, true, use);
+        return Security.importKey(cfg.keyEnc, Security.#ECDH_TYPE, '');
     }
 
     /**
@@ -116,18 +130,6 @@ export default class Security {
         const type = Object.assign({counter: iv}, Security.#AES_TYPE);
         type.length = 128;
         return type;		
-	}
-	
-    /**
-	 * Create random bytes
-	 *
-	 * @param {int} size
-	 *     length of data (required)
-	 */
-	getRandom(size) {
-		const array = new Uint8Array(size);
-		crypto.getRandomValues(array);
-		return array;
 	}
 
     /**
@@ -199,15 +201,13 @@ export default class Security {
 
         await me.#initVerify(cfg);
 
-        const publicKey = await me.#initPublic(cfg);
-        const keyPair = await me.#initKeyPair();
-        
-        me.#publicKey = await me.exportKey(keyPair.publicKey);
-        me.#aesKey = await me.#deriveAES(keyPair.privateKey, publicKey);
+        const publicKey = await me.#initPublic(cfg);       
+        me.#aesKey = await me.#deriveAES(me.#keyPair.privateKey, publicKey);
+        me.#keyPair = null;
         
         /*
         if (globalThis.QUARK_DEBUG) {
-			const raw = await me.exportKey(me.#aesKey);
+			const raw = await Security.exportKey(me.#aesKey);
 			console.log('DEBUG: Derived key :', raw);
 		}
 		*/
@@ -225,7 +225,7 @@ export default class Security {
         const me = this;
         if (!me.isValid) return data;
         if (! data instanceof Uint8Array) return data;
-        const iv = me.getRandom(16);
+        const iv = Security.getRandom(16);
         const d = await me.encryptAsBuffer(me.#aesKey, iv, data);
 
         const raw = new Uint8Array(iv.length + d.length);
@@ -253,9 +253,18 @@ export default class Security {
 		return await me.decryptAsBuffer(me.#aesKey, iv, data);
 	}
 
-	static async init(cfg) {
+    async #preInit() {
+        const me = this;
+        if (me.#publicKey) return me.#publicKey;
+        me.#keyPair = await Security.initKeyPair();        
+        me.#publicKey = await Security.exportKey(me.#keyPair.publicKey);
+        return me.#publicKey;
+    }
+
+	static async create(cfg) {
 		const security = new Security();
-		await security.init(cfg);
+		await security.#preInit();
+		if (cfg) await security.init(cfg);
 		return security;
 	}
 

@@ -83,7 +83,7 @@ export default class QuarkEngine {
 		const me = this;
 		if (me.isActive) return;
 
-		me.#Security = new Security();
+		me.#Security = await Security.create();
 		me.#Generator = new Generator(me.id);
 
 		if (me.isWebChannel || me.isWSAPI == false) {
