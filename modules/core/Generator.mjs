@@ -219,10 +219,10 @@ export default class Generator extends QuarkEvent {
 		const fn = function () {
 
 			const args = Array.prototype.slice.call(arguments);
-			
+
 			// overriden function with multiple param lengths
 			const isOverride = Array.isArray(prop.l);
-			
+
 			const len = isOverride ? prop.l.filter(v => v === args.length).pop() : prop.l;
 			if (args.length != len) throw new Error(`Invalid arguments length. Required (${prop.l})`);
 

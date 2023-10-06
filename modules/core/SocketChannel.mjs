@@ -62,7 +62,7 @@ export default class SocketChannel extends QuarkEvent {
 	#wrap(cmd, req) {
 		const data = {
 			type: 'GS',
-			cmd : cmd,
+			cmd: cmd,
 			data: req ? [req] : null
 		};
 		return JSON.stringify(data);
@@ -126,13 +126,13 @@ export default class SocketChannel extends QuarkEvent {
 			if (!engine.isWSAPI) {
 				return resolve(true);
 			}
-			
+
 			generator.once('api', async (e) => {
 
 				try {
 					const data = e.detail;
 					data.challenge = me.#challenge;
-					await engine.registerAPI(data);	
+					await engine.registerAPI(data);
 					resolve(true);
 				} catch (e) {
 					reject(e);
@@ -170,12 +170,12 @@ export default class SocketChannel extends QuarkEvent {
 		};
 
 	}
-	
+
 	#initPing() {
 		const me = this;
 		me.#iid = setInterval(() => {
 			me.send(me.#ping);
-		}, 15 * 1000);	
+		}, 15 * 1000);
 	}
 
 	async #prepareBinaryMessage(message) {
@@ -187,7 +187,7 @@ export default class SocketChannel extends QuarkEvent {
 		message = await Streams.unwrap(message, security, me.#challenge);
 
 		const isJSON = Streams.isJson(message);
-		if (!isJSON) return	generator.emit('raw', message);
+		if (!isJSON) return generator.emit('raw', message);
 
 		if (Array.isArray(message)) {
 			message.forEach(m => me.#onMessage(m));
@@ -212,14 +212,14 @@ export default class SocketChannel extends QuarkEvent {
 			const isJSON = Streams.isJson(message);
 
 			if (!isJSON) return generator.emit('raw', message);
-			
+
 			message = JSON.parse(message);
 			if (Array.isArray(message)) {
 				message.forEach(m => me.#onMessage(m));
 			} else {
 				me.#onMessage(message);
 			}
-			
+
 		} catch (e) {
 			generator.emit('error', e);
 		}

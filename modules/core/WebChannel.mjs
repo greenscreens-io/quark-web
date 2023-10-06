@@ -91,11 +91,11 @@ export default class WebChannel {
 		const id = Date.now();
 
 		const headers = Object.assign({}, engine.headers || {}, { 'gs-challenge': id });
-		
+
 		if (security.publicKey) {
 			headers['gs-public-key'] = security.publicKey;
 		}
-		
+
 		const res = await me.#fetchCall(url, null, headers, false, 'get');
 		const data = await me.#onResponse(res, id);
 
@@ -105,7 +105,7 @@ export default class WebChannel {
 		return data;
 
 	}
-	
+
 	get #accept() {
 		return `${WebChannel.#MIME_BINARY}, ${WebChannel.#MIME_JSON}`;
 	}
@@ -129,7 +129,7 @@ export default class WebChannel {
 			'Content-Type': CONTENT_TYPE,
 			'Accept-Encoding': 'gzip,deflate,br'
 		};
-		
+
 		if (isCompress && Streams.isAvailable) {
 			data = Streams.toBinary(data);
 			data = await Streams.compressOrDefault(data);
@@ -146,7 +146,7 @@ export default class WebChannel {
 		};
 
 		if (data) req.body = data;
-		
+
 		Object.entries(querys || {}).forEach((v) => {
 			service.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
@@ -159,9 +159,9 @@ export default class WebChannel {
 
 		let obj = await WebChannel.fromResponse(res);
 		if (obj instanceof Uint8Array) {
-			obj = await Streams.unwrap(obj, this.#engine.Security, id);			
+			obj = await Streams.unwrap(obj, this.#engine.Security, id);
 		}
-		
+
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			return obj.data;
 		}
@@ -183,7 +183,7 @@ export default class WebChannel {
 		const security = engine.Security;
 		const url = engine.serviceURL;
 
-		const isEncrypt = security?.isValid;	
+		const isEncrypt = security?.isValid;
 		let isCompress = false;
 		let raw = null;
 
@@ -217,11 +217,11 @@ export default class WebChannel {
 	}
 
 	static async fromResponse(res) {
-		
+
 		if (!res.ok) {
-			throw new Error(`${res.status} : ${res.statusText}`); 
+			throw new Error(`${res.status} : ${res.statusText}`);
 		}
-		
+
 		const mime = res.headers.get('content-type') || '';
 		const isBin = mime.includes(WebChannel.#MIME_BINARY);
 		const isJson = mime.includes(WebChannel.#MIME_JSON);
@@ -230,7 +230,7 @@ export default class WebChannel {
 		if (isJson) return await res.json();
 		if (isPlain) return await res.text();
 
-		const raw = await res.arrayBuffer();		
+		const raw = await res.arrayBuffer();
 		return new Uint8Array(raw);
 	}
 }

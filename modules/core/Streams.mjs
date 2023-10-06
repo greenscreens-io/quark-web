@@ -24,8 +24,8 @@ export default class Streams {
 	static #toGS(raw, encrypted = false, compressed = false) {
 		if (!raw instanceof Uint8Array) return raw;
 		const type = Streams.#dataType(encrypted, compressed);
-		
-		const data = new Uint8Array(8 + raw.length);      
+
+		const data = new Uint8Array(8 + raw.length);
 		const dv = new DataView(data.buffer);
 		dv.setUint8(0, 71);
 		dv.setUint8(1, 83);
@@ -53,7 +53,7 @@ export default class Streams {
 		*/
 		return raw;
 	}
-		
+
 	/**
 	 * Decode binary message from GS binary format
 	 * @param {*} raw 
@@ -70,13 +70,13 @@ export default class Streams {
 		*/
 		const dv = new DataView(raw);
 		const isGS = Streams.#isGS(dv);
-		
+
 		raw = Streams.toBinary(raw);
 		if (!isGS) return raw;
 
 		const type = dv.getUint8(3);
 		const len = dv.getUint32(4);
-		
+
 		if (dv.byteLength !== len + 8) return raw;
 
 		raw = raw.slice(8);
@@ -90,14 +90,14 @@ export default class Streams {
 			const encLen = dv.getUint32(8);
 			const verLen = dv.getUint32(8 + 4 + encLen);
 			const sgnLen = dv.getUint32(8 + 4 + encLen + 4 + verLen);
-			
+
 			api = {
 				challenge: challenge,
-				keyEnc : (raw.slice(4, 4 + encLen)),
-				keyVer : (raw.slice(4 + encLen + 4, 4 + encLen + 4 + verLen)),
-				signature : (raw.slice(4 + encLen + 4 + verLen + 4, 4 + encLen + 4 + verLen + 4 + sgnLen))				
+				keyEnc: (raw.slice(4, 4 + encLen)),
+				keyVer: (raw.slice(4 + encLen + 4, 4 + encLen + 4 + verLen)),
+				signature: (raw.slice(4 + encLen + 4 + verLen + 4, 4 + encLen + 4 + verLen + 4 + sgnLen))
 			};
-			
+
 			await security.init(api);
 			raw = raw.slice((4 * 3) + encLen + verLen + sgnLen);
 		}
@@ -112,8 +112,8 @@ export default class Streams {
 		}
 
 		raw = Streams.toBinary(raw);
-		if(!Streams.isJson(raw)) throw new Error('Invalid response');
-		
+		if (!Streams.isJson(raw)) throw new Error('Invalid response');
+
 		return JSON.parse(Buffer.toText(raw));
 	}
 
@@ -137,7 +137,7 @@ export default class Streams {
 	static isApiFlag(type) {
 		return (type & 4) === 4;
 	}
-	
+
 	static #dataType(isEncrypt, isCompress) {
 		const type = isCompress ? 1 : 0;
 		return type | (isEncrypt ? 2 : 0);
@@ -181,7 +181,7 @@ export default class Streams {
 	 * @param {*} data 
 	 * @param {*} encoding gzip | deflate (zlib)
 	 * @returns {Response} 
-	 */	
+	 */
 	static compress(data, encoding = 'gzip') {
 		const stream = new CompressionStream(encoding);
 		return this.#stream(data, stream);
@@ -201,7 +201,7 @@ export default class Streams {
 	static toBinary(data) {
 		if (data instanceof Uint8Array) return data;
 		if (data instanceof ArrayBuffer) return new Uint8Array(data);
-		if (typeof data === 'string' ) return Buffer.fromText(data);
+		if (typeof data === 'string') return Buffer.fromText(data);
 		return this.toBinary(JSON.stringify(data));
 	}
 
@@ -223,7 +223,7 @@ export default class Streams {
 	 * 31 139 8
 	 * 
 	 * @param {ArrayBuffer|Uint8Array} data 
-	 */	
+	 */
 	static isGzip(data) {
 		return data.at(0) === 31 && data.at(1) === 139 && data.at(2) === 8;
 	}
@@ -235,7 +235,7 @@ export default class Streams {
 	 * 78  (01, 5e,9c, da) 
 	 * 120 (1, 94, 156, 218)
 	 * @param {ArrayBuffer|Uint8Array} data 
-	 */	
+	 */
 	static isZlib(data) {
 		return data.at(0) === 120 && [1, 94, 156, 218].indexOf(data.at(1)) > -1;
 	}
@@ -244,15 +244,15 @@ export default class Streams {
 		const me = this;
 		data = typeof data === 'string' ? data.trim() : me.toBinary(data);
 		const first = data.at(0);
-		const last = data.at(data.length - 1);		
+		const last = data.at(data.length - 1);
 		return me.#isJsonArray(first, last) || me.#isJsonObj(first, last);
 	}
 
 	static #isJsonObj(first, last) {
-		return (first === '{' || first === 123)  && (last === '}' || last === 125);
+		return (first === '{' || first === 123) && (last === '}' || last === 125);
 	}
 
 	static #isJsonArray(first, last) {
-		return (first === '[' || first === 91)  && (last === ']' || last === 93);
+		return (first === '[' || first === 91) && (last === ']' || last === 93);
 	}
 }

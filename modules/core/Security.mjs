@@ -15,32 +15,32 @@ export default class Security {
     static #ECDH_TYPE = { name: 'ECDH', namedCurve: "P-256" };
     static #ECDSA_TYPE = { name: 'ECDSA', namedCurve: "P-384" };
     static #VERIFY = { name: 'ECDSA', hash: "SHA-384" };
-    static #AES_TYPE= { name: "AES-CTR", length: 256 };
-    
-    #publicKey = null;   
+    static #AES_TYPE = { name: "AES-CTR", length: 256 };
+
+    #publicKey = null;
     #keyPair = null;
     #aesKey = null;
-	
+
     /**
-	 * Create random bytes
-	 *
-	 * @param {int} size
-	 *     length of data (required)
-	 */
-	static getRandom(size) {
-		const array = new Uint8Array(size);
-		crypto.getRandomValues(array);
-		return array;
-	}
+     * Create random bytes
+     *
+     * @param {int} size
+     *     length of data (required)
+     */
+    static getRandom(size) {
+        const array = new Uint8Array(size);
+        crypto.getRandomValues(array);
+        return array;
+    }
 
     /**
      * Initialize browser ECDH key pair 
      */
     static initKeyPair() {
-        const use = ['deriveKey','deriveBits'];
+        const use = ['deriveKey', 'deriveBits'];
         return crypto.subtle.generateKey(Security.#ECDH_TYPE, true, use);
     }
-    
+
     /**
      * Import Async key received from server
      * Key is publicKey used to send encrypted AES key
@@ -54,14 +54,14 @@ export default class Security {
         const use = mode ? mode.split(',') : [];
         return crypto.subtle.importKey('spki', der, type, true, use);
     }
-    
+
     /**
      * Export key in hex form
      * @param {CryptoKey} key
      * @returns {string}
      */
     static async exportKey(key) {
-        const ab = await crypto.subtle.exportKey('raw',  key);
+        const ab = await crypto.subtle.exportKey('raw', key);
         return Buffer.toHex(ab);
     }
 
@@ -79,26 +79,26 @@ export default class Security {
         return crypto.subtle.verify(type, key, signature, challenge);
     }
 
-	/**
-	 * Sign data with HMAC
+    /**
+     * Sign data with HMAC
      * @param {CryptoKey} Private key used for verification
      * @param {ArrayBuffer} data Data to sign
-	 */
+     */
     static async sign(key, data) {
         data = Buffer.toBuffer(data);
         return crypto.subtle.sign('ECDSA', key, data);
     }
-    
-	get publicKey() { return this.#publicKey;}
+
+    get publicKey() { return this.#publicKey; }
 
     cookie(path = "/") {
-        return `gs-public-key=${this.#publicKey||''};path=${path}`;
+        return `gs-public-key=${this.#publicKey || ''};path=${path}`;
     }
 
     updateCookie(path = "/") {
         document.cookie = this.cookie(path);
     }
-	
+
     /**
      *  Use local challenge, to verify received data signature
      *
@@ -120,7 +120,7 @@ export default class Security {
      * Initialize server public key
      * @param {object} cfg 
      */
-    #initPublic(cfg) {        
+    #initPublic(cfg) {
         return Security.importKey(cfg.keyEnc, Security.#ECDH_TYPE, '');
     }
 
@@ -136,12 +136,12 @@ export default class Security {
         return crypto.subtle.deriveKey(pubDef, priv, derivedKey, dbg, use);
     }
 
-	#toAlgo(iv) {
+    #toAlgo(iv) {
         iv = Buffer.toBuffer(iv);
-        const type = Object.assign({counter: iv}, Security.#AES_TYPE);
+        const type = Object.assign({ counter: iv }, Security.#AES_TYPE);
         type.length = 128;
-        return type;		
-	}
+        return type;
+    }
 
     /**
      * Encrypt message with AES
@@ -149,7 +149,7 @@ export default class Security {
      * @param {ArrayBuffer} iv IV as Hex string 
      * @param {ArrayBuffer} data as Hex string 
      */
-    async encryptRaw(key, iv, data) {        
+    async encryptRaw(key, iv, data) {
         const databin = Buffer.toBuffer(data);
         const type = this.#toAlgo(iv);
         return crypto.subtle.encrypt(type, key, databin);
@@ -167,12 +167,12 @@ export default class Security {
         return crypto.subtle.decrypt(type, key, databin);
     }
 
-    async decryptAsBuffer(key, iv, data) {   
+    async decryptAsBuffer(key, iv, data) {
         const result = await this.decryptRaw(key, iv, data);
         return Buffer.toBuffer(result);
     }
 
-    async encryptAsBuffer(key, iv, data) {   
+    async encryptAsBuffer(key, iv, data) {
         const result = await this.encryptRaw(key, iv, data);
         return Buffer.toBuffer(result);
     }
@@ -182,19 +182,19 @@ export default class Security {
         return Buffer.toText(result);
     }
 
-    async encryptAsHex(key, iv, data) {   
+    async encryptAsHex(key, iv, data) {
         const result = await this.encryptRaw(key, iv, data);
         return Buffer.toHex(result);
     }
 
-	get isValid() {
-		const me = this;
-		return me.#publicKey !== null && me.#aesKey !== null;
-	}
+    get isValid() {
+        const me = this;
+        return me.#publicKey !== null && me.#aesKey !== null;
+    }
 
-	static get isAvailable() {
-		return crypto.subtle ? true : false;
-	}
+    static get isAvailable() {
+        return crypto.subtle ? true : false;
+    }
 
     /**
      * Initialize encryption and verification keys
@@ -202,22 +202,22 @@ export default class Security {
      */
     async init(cfg) {
 
-		if (!Security.isAvailable) {
-			console.log('Security mode not available, TLS protocol required.');
-			return;
-		}
+        if (!Security.isAvailable) {
+            console.log('Security mode not available, TLS protocol required.');
+            return;
+        }
 
-		console.log('Security Initializing...');		
+        console.log('Security Initializing...');
         const me = this;
 
         await me.#initVerify(cfg);
 
-        const publicKey = await me.#initPublic(cfg);       
+        const publicKey = await me.#initPublic(cfg);
         me.#aesKey = await me.#deriveAES(me.#keyPair.privateKey, publicKey);
         me.#keyPair = null;
-        		
-		console.log('Security Initialized!');
-        
+
+        console.log('Security Initialized!');
+
     }
 
     /**
@@ -228,7 +228,7 @@ export default class Security {
     async encrypt(data) {
         const me = this;
         if (!me.isValid) return data;
-        if (! data instanceof Uint8Array) return data;
+        if (!data instanceof Uint8Array) return data;
         const iv = Security.getRandom(16);
         const d = await me.encryptAsBuffer(me.#aesKey, iv, data);
 
@@ -238,24 +238,24 @@ export default class Security {
         return raw;
     }
 
-	/**
-	 * Decrypt received data in format {d:.., k:...}
-	 *
-	 * @param {ArrayBuffer|Uint8Array} data
-	 * @param {ArrayBuffer|Uint8Array} iv
-	 * @return 
-	 */
-	async decrypt(data, iv) {
+    /**
+     * Decrypt received data in format {d:.., k:...}
+     *
+     * @param {ArrayBuffer|Uint8Array} data
+     * @param {ArrayBuffer|Uint8Array} iv
+     * @return 
+     */
+    async decrypt(data, iv) {
 
-		const me = this;
-		
-		if (!iv) {
-			iv = data.slice(0, 16);
-			data = data.slice(16);
-		}
+        const me = this;
 
-		return await me.decryptAsBuffer(me.#aesKey, iv, data);
-	}
+        if (!iv) {
+            iv = data.slice(0, 16);
+            data = data.slice(16);
+        }
+
+        return await me.decryptAsBuffer(me.#aesKey, iv, data);
+    }
 
     async #preInit() {
         const me = this;
@@ -263,11 +263,11 @@ export default class Security {
         me.#publicKey = await Security.exportKey(me.#keyPair.publicKey);
     }
 
-	static async create(cfg) {
-		const security = new Security();
-		await security.#preInit();
-		if (cfg) await security.init(cfg);
-		return security;
-	}
+    static async create(cfg) {
+        const security = new Security();
+        await security.#preInit();
+        if (cfg) await security.init(cfg);
+        return security;
+    }
 
 }
