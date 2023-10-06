@@ -17,9 +17,7 @@ export default class Security {
     static #VERIFY = { name: 'ECDSA', hash: "SHA-384" };
     static #AES_TYPE= { name: "AES-CTR", length: 256 };
     
-    // exported localy created public key
-    #publicKey = null;
-    
+    #publicKey = null;   
     #keyPair = null;
     #aesKey = null;
 	
@@ -217,14 +215,7 @@ export default class Security {
         const publicKey = await me.#initPublic(cfg);       
         me.#aesKey = await me.#deriveAES(me.#keyPair.privateKey, publicKey);
         me.#keyPair = null;
-        
-        /*
-        if (globalThis.QUARK_DEBUG) {
-			const raw = await Security.exportKey(me.#aesKey);
-			console.log('DEBUG: Derived key :', raw);
-		}
-		*/
-		
+        		
 		console.log('Security Initialized!');
         
     }

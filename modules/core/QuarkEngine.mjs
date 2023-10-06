@@ -109,7 +109,7 @@ export default class QuarkEngine {
 		const me = this;
 
 		// initialize encryption if provided
-		if (data.signature && !me.Security.isValid) {
+		if (data.signature && !me.Security?.isValid) {
 			await me.Security?.init(data);
 		}
 

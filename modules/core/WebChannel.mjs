@@ -99,16 +99,6 @@ export default class WebChannel {
 		const res = await me.#fetchCall(url, null, headers, false, 'get');
 		const data = await me.#onResponse(res, id);
 
-		/**
-		const resp = await fetch(url, {
-			method: 'get',
-			headers: headers,
-			credentials: 'same-origin'
-		});
-
-		const data = await resp.json();
-		*/
-
 		// update local challenge for signature verificator
 		data.challenge = id.toString();
 
@@ -154,7 +144,9 @@ export default class WebChannel {
 			method: method,
 			headers: headers
 		};
+
 		if (data) req.body = data;
+		
 		Object.entries(querys || {}).forEach((v) => {
 			service.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
