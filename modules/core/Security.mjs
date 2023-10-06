@@ -105,7 +105,12 @@ export default class Security {
      *  @param {Object} cfg Data received from server contins public key and signature
      */
     #getChallenge(cfg) {
-        return [cfg.challenge || '', Buffer.toBase64(cfg.keyEnc) || '', Buffer.toBase64(cfg.keyVer) || ''].join('');
+        const me = this;
+        return [cfg.challenge || '', me.#toChallenge(cfg.keyEnc) || '', me.#toChallenge(cfg.keyVer) || ''].join('');
+    }
+
+    #toChallenge(val) {
+        return Buffer.isText(val) ? val : Buffer.toBase64(val);
     }
 
     async #initVerify(cfg) {

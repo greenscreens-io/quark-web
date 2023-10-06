@@ -212,7 +212,7 @@ export default class Streams {
 	static isCompressed(data) {
 		const me = this;
 		data = me.toBinary(data);
-		return me.isGzip(data) || me.isZlib(data);
+		return me.isGzip(data); // || me.isZlib(data);
 	}
 
 	/**
