@@ -66,6 +66,7 @@ export default class QuarkEngine {
 		me.#headers = cfg.headers || {};
 		me.#querys = cfg.querys || {};
 
+		me.#Security = cfg.security instanceof Security ? cfg.security : null;
 		me.#isWebChannel = cfg.service.indexOf('http') === 0;
 		me.#isSocketChannel = cfg.service.indexOf('ws') === 0;
 
@@ -83,7 +84,7 @@ export default class QuarkEngine {
 		const me = this;
 		if (me.isActive) return;
 
-		me.#Security = await Security.create();
+		if (!me.#Security) me.#Security = await Security.create();
 		me.#Generator = new Generator(me.id);
 
 		if (me.isWebChannel || me.isWSAPI == false) {
@@ -101,14 +102,14 @@ export default class QuarkEngine {
 
 	/**
 	 * Use internaly from channel to register received
-	 * API definitiona and security data
+	 * API definitions and security data
 	 */
 	async registerAPI(data) {
 
 		const me = this;
 
 		// initialize encryption if provided
-		if (data.signature) {
+		if (data.signature && !me.Security.isValid) {
 			await me.Security?.init(data);
 		}
 

@@ -86,19 +86,28 @@ export default class WebChannel {
 	async #getAPI(url) {
 
 		const me = this;
-		const service = url;
 		const engine = me.#engine;
+		const security = engine.Security;
 		const id = Date.now();
 
-		const headers = Object.assign({}, engine.headers || {}, { 'x-time': id });
+		const headers = Object.assign({}, engine.headers || {}, { 'gs-challenge': id });
+		
+		if (security.publicKey) {
+			headers['gs-public-key'] = security.publicKey;
+		}
+		
+		const res = await me.#fetchCall(url, null, headers, false, 'get');
+		const data = await me.#onResponse(res, id);
 
-		const resp = await fetch(service, {
+		/**
+		const resp = await fetch(url, {
 			method: 'get',
 			headers: headers,
 			credentials: 'same-origin'
 		});
 
 		const data = await resp.json();
+		*/
 
 		// update local challenge for signature verificator
 		data.challenge = id.toString();
@@ -106,7 +115,7 @@ export default class WebChannel {
 		return data;
 
 	}
-
+	
 	get #accept() {
 		return `${WebChannel.#MIME_BINARY}, ${WebChannel.#MIME_JSON}`;
 	}
@@ -119,7 +128,7 @@ export default class WebChannel {
 	/**
 	 * Send data to server with http/s channel
 	 */
-	async #fetchCall(url, data, head, isCompress) {
+	async #fetchCall(url, data, head, isCompress, method = 'post') {
 
 		const me = this;
 		const engine = me.#engine;
@@ -130,7 +139,7 @@ export default class WebChannel {
 			'Content-Type': CONTENT_TYPE,
 			'Accept-Encoding': 'gzip,deflate,br'
 		};
-
+		
 		if (isCompress && Streams.isAvailable) {
 			data = Streams.toBinary(data);
 			data = await Streams.compressOrDefault(data);
@@ -142,10 +151,10 @@ export default class WebChannel {
 		const querys = Object.assign({}, engine.querys || {});
 
 		const req = {
-			method: 'post',
-			headers: headers,
-			body: data
+			method: method,
+			headers: headers
 		};
+		if (data) req.body = data;
 		Object.entries(querys || {}).forEach((v) => {
 			service.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
@@ -154,23 +163,13 @@ export default class WebChannel {
 
 	}
 
-	async #onResponse(res) {
-		const mime = res.headers.get('content-type') || '';
-		const isBin = mime.includes(WebChannel.#MIME_BINARY);
-		const isJson = mime.includes(WebChannel.#MIME_JSON);
-		const isPlain = !isBin && !isJson;
+	async #onResponse(res, id) {
 
-		if (isJson) return await res.json();
-		if (isPlain) {
-			const txt = await res.text();
-			if (!Streams.isJson(txt)) throw new Error('Invalid response');
-			return JSON.parse(txt);
+		let obj = await WebChannel.fromResponse(res);
+		if (obj instanceof Uint8Array) {
+			obj = await Streams.unwrap(obj, this.#engine.Security, id);			
 		}
-
-
-		const raw = await res.arrayBuffer();
-		const obj = await Streams.unwrap(raw, this.#engine.Security);
-
+		
 		if (obj && obj.type == 'ws' && obj.cmd === 'data') {
 			return obj.data;
 		}
@@ -192,15 +191,17 @@ export default class WebChannel {
 		const security = engine.Security;
 		const url = engine.serviceURL;
 
-		const isEncrypt = security?.isValid;
+		const isEncrypt = security?.isValid;	
 		let isCompress = false;
 		let raw = null;
 
-		if (isEncrypt) {
-			raw = await Streams.wrap(req, me.#engine.Security);
-		} else {
-			raw = JSON.stringify(raw);
-			isCompress = true;
+		if (req) {
+			if (isEncrypt) {
+				raw = await Streams.wrap(req, me.#engine.Security);
+			} else {
+				raw = JSON.stringify(raw);
+				isCompress = true;
+			}
 		}
 
 		const head = {};
@@ -223,4 +224,21 @@ export default class WebChannel {
 
 	}
 
+	static async fromResponse(res) {
+		
+		if (!res.ok) {
+			throw new Error(`${res.status} : ${res.statusText}`); 
+		}
+		
+		const mime = res.headers.get('content-type') || '';
+		const isBin = mime.includes(WebChannel.#MIME_BINARY);
+		const isJson = mime.includes(WebChannel.#MIME_JSON);
+		const isPlain = !isBin && !isJson;
+
+		if (isJson) return await res.json();
+		if (isPlain) return await res.text();
+
+		const raw = await res.arrayBuffer();		
+		return new Uint8Array(raw);
+	}
 }

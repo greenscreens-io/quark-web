@@ -129,7 +129,7 @@ export default class QuarkEvent extends EventTarget {
     }
 
     static {
-        Object.freeze(Event);
+        Object.freeze(QuarkEvent);
     }
 
 }

@@ -189,11 +189,14 @@ export default class Generator extends QuarkEvent {
 
 		const enc = api.encrypt === false ? false : true;
 		const cfg = {
+			/*
 			n: namespace,
 			c: action,
 			m: api.name,
+			*/
 			l: api.len,
 			a: api.async,
+			x: api.mid,
 			e: enc,
 			i: id
 		};
@@ -216,10 +219,10 @@ export default class Generator extends QuarkEvent {
 		const fn = function () {
 
 			const args = Array.prototype.slice.call(arguments);
-
+			
 			// overriden function with multiple param lengths
 			const isOverride = Array.isArray(prop.l);
-
+			
 			const len = isOverride ? prop.l.filter(v => v === args.length).pop() : prop.l;
 			if (args.length != len) throw new Error(`Invalid arguments length. Required (${prop.l})`);
 
@@ -227,9 +230,12 @@ export default class Generator extends QuarkEvent {
 			const timeout = isAsync ? 0 : me.#timeout;
 
 			const req = {
+				/*
 				"namespace": prop.n,
 				"action": prop.c,
 				"method": prop.m,
+				*/
+				"handle": prop.x,
 				"id": prop.i,
 				"enc": prop.e,
 				"data": args,

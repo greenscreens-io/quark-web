@@ -1,6 +1,9 @@
  
 # [Quark Engine Web Client](https://quark.greenscreens.ltd/).
 
+## v6.0.0. (2023.Q4)
+ - API format definition change
+
 ## v5.0.0. (2023.Q3)
  - Switch to binary transfer mode 
  - New optimized Quark data stream
