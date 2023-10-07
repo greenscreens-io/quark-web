@@ -116,7 +116,7 @@ export default class Generator extends QuarkEvent {
 		}
 		action = tree[api.action];
 
-		me.#reduce(api.methods)?.forEach(v => me.#buildMethod(api.namespace, api.action, action, v, me.#id));
+		me.#reduce(api.methods)?.forEach(v => me.#buildMethod(action, v, me.#id));
 
 	}
 
@@ -137,10 +137,11 @@ export default class Generator extends QuarkEvent {
 			}
 
 			const obj = objs.filter(r => r.name === v.name).reduce((a, v) => {
+				a.mid.push(v.mid);
 				a.len.push(v.len);
 				a.async[v.len] = v.async;
 				return a;
-			}, { name: v.name, len: [], async: {} });
+			}, { name: v.name, mid: [], len: [], async: {} });
 
 			a.push(obj);
 			return a
@@ -180,22 +181,16 @@ export default class Generator extends QuarkEvent {
 	/**
 	 * Build instance methods
 	 *
-	 * @param {String} namespace
-	 * @param {String} action
 	 * @param {String} instance
 	 * @param {Array} api
+	 * @param {String} id
 	 */
-	#buildMethod(namespace, action, instance, api, id) {
+	#buildMethod(instance, api, id) {
 
 		const enc = api.encrypt === false ? false : true;
 		const cfg = {
-			/*
-			n: namespace,
-			c: action,
-			m: api.name,
-			*/
 			l: api.len,
-			a: api.async,
+			a: api.async || false,
 			x: api.mid,
 			e: enc,
 			i: id
@@ -226,16 +221,12 @@ export default class Generator extends QuarkEvent {
 			const len = isOverride ? prop.l.filter(v => v === args.length).pop() : prop.l;
 			if (args.length != len) throw new Error(`Invalid arguments length. Required (${prop.l})`);
 
+			const handle = Array.isArray(prop.x) ? prop.x[len-1] : prop.x;
 			const isAsync = isOverride ? prop.a[args.length] : prop.a;
 			const timeout = isAsync ? 0 : me.#timeout;
 
 			const req = {
-				/*
-				"namespace": prop.n,
-				"action": prop.c,
-				"method": prop.m,
-				*/
-				"handle": prop.x,
+				"handle": handle,
 				"id": prop.i,
 				"enc": prop.e,
 				"data": args,
