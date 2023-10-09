@@ -5,7 +5,7 @@
 /**
  * API engine asynchronous request
  */
-export default class Request {
+export default class QuarkRequest {
 
     #id = 0;
     #timeout = 0;
@@ -52,6 +52,6 @@ export default class Request {
     }
 
     static wrap(data, timeout, callback) {
-        return new Proxy(data, new Request(timeout, callback));
+        return new Proxy(data, new QuarkRequest(timeout, callback));
     }
 }

@@ -5,7 +5,7 @@
 /**
  * Queue to handle requests
  */
-export default class Queue extends Map {
+export default class QuarkQueue extends Map {
 
 	#up = 0;
 	#down = 0;

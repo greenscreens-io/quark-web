@@ -2,7 +2,7 @@
  * Copyright (C) 2015, 2023 Green Screens Ltd.
  */
 
-export default class Buffer {
+export default class QuarkBuffer {
 
 	static #encoder = new TextEncoder();
 	static #decoder = new TextDecoder();
@@ -22,7 +22,7 @@ export default class Buffer {
 		} else if (src instanceof Uint8Array) {
 			data = src;
 		} else if (src instanceof String || typeof src === 'string') {
-			data = Buffer.fromText(src);
+			data = QuarkBuffer.fromText(src);
 		} else if (src.toArrayBuffer) {
 			data = new Uint8Array(src.toArrayBuffer());
 		} else {
@@ -46,11 +46,11 @@ export default class Buffer {
 	 * @returns 
 	 */
 	static isHexString(data) {
-		return Buffer.isString(data) ? (/^[0-9A-Fa-f]+$/g).test(data) : false;
+		return QuarkBuffer.isString(data) ? (/^[0-9A-Fa-f]+$/g).test(data) : false;
 	}
 
 	static toBuffer(data, b64 = false) {
-		const me = Buffer;
+		const me = QuarkBuffer;
 		if (me.isString(data)) {
 			if (b64) {
 				data = me.fromBase64(data);
@@ -64,11 +64,11 @@ export default class Buffer {
 	}
 
 	static toText(val) {
-		return Buffer.isText(val) ? val : Buffer.#decoder.decode(val);
+		return QuarkBuffer.isText(val) ? val : QuarkBuffer.#decoder.decode(val);
 	}
 
 	static fromText(val) {
-		return Buffer.isText(val) ? Buffer.#encoder.encode(val) : val;
+		return QuarkBuffer.isText(val) ? QuarkBuffer.#encoder.encode(val) : val;
 	}
 
 	static isText(val) {
@@ -104,7 +104,7 @@ export default class Buffer {
 	}
 
 	static toBase64(buffer) {
-		buffer = Buffer.toBuffer(buffer);
+		buffer = QuarkBuffer.toBuffer(buffer);
 		return btoa(buffer.reduce((data, val) => {
 			return data + String.fromCharCode(val);
 		}, ''));

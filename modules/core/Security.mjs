@@ -8,9 +8,9 @@
  *
  */
 
-import Buffer from "./Buffer.mjs";
+import QuarkBuffer from "./Buffer.mjs";
 
-export default class Security {
+export default class QuarkSecurity {
 
     static #ECDH_TYPE = { name: 'ECDH', namedCurve: "P-256" };
     static #ECDSA_TYPE = { name: 'ECDSA', namedCurve: "P-384" };
@@ -50,7 +50,7 @@ export default class Security {
      * @param {String} mode Comma separted list of key usages 
      */
     static async importKey(key, type, mode) {
-        const der = Buffer.toBuffer(key, true);
+        const der = QuarkBuffer.toBuffer(key, true);
         const use = mode ? mode.split(',') : [];
         return crypto.subtle.importKey('spki', der, type, true, use);
     }
@@ -62,7 +62,7 @@ export default class Security {
      */
     static async exportKey(key) {
         const ab = await crypto.subtle.exportKey('raw', key);
-        return Buffer.toHex(ab);
+        return QuarkBuffer.toHex(ab);
     }
 
     /**
@@ -73,9 +73,9 @@ export default class Security {
      * @param {ArrayBuffer} challenge Challenge to verify with signature (ts + pemENCDEC + pemVERSGN)
      */
     static async verify(key, signature, challenge) {
-        signature = Buffer.toBuffer(signature, true);
-        challenge = Buffer.toBuffer(challenge);
-        const type = Security.#VERIFY;
+        signature = QuarkBuffer.toBuffer(signature, true);
+        challenge = QuarkBuffer.toBuffer(challenge);
+        const type = QuarkSecurity.#VERIFY;
         return crypto.subtle.verify(type, key, signature, challenge);
     }
 
@@ -85,7 +85,7 @@ export default class Security {
      * @param {ArrayBuffer} data Data to sign
      */
     static async sign(key, data) {
-        data = Buffer.toBuffer(data);
+        data = QuarkBuffer.toBuffer(data);
         return crypto.subtle.sign('ECDSA', key, data);
     }
 
@@ -110,14 +110,14 @@ export default class Security {
     }
 
     #toChallenge(val) {
-        return Buffer.isText(val) ? val : Buffer.toBase64(val);
+        return QuarkBuffer.isText(val) ? val : QuarkBuffer.toBase64(val);
     }
 
     async #initVerify(cfg) {
         const me = this;
-        const type = Security.#ECDSA_TYPE;
-        const verKey = await Security.importKey(cfg.keyVer, type, 'verify');
-        const status = await Security.verify(verKey, cfg.signature, me.#getChallenge(cfg));
+        const type = QuarkSecurity.#ECDSA_TYPE;
+        const verKey = await QuarkSecurity.importKey(cfg.keyVer, type, 'verify');
+        const status = await QuarkSecurity.verify(verKey, cfg.signature, me.#getChallenge(cfg));
         if (!status) throw new Error('Signature invalid');
     }
 
@@ -126,7 +126,7 @@ export default class Security {
      * @param {object} cfg 
      */
     #initPublic(cfg) {
-        return Security.importKey(cfg.keyEnc, Security.#ECDH_TYPE, '');
+        return QuarkSecurity.importKey(cfg.keyEnc, QuarkSecurity.#ECDH_TYPE, '');
     }
 
     /**
@@ -136,14 +136,14 @@ export default class Security {
     #deriveAES(priv, pub) {
         const pubDef = { name: "ECDH", public: pub };
         const use = ['encrypt', 'decrypt'];
-        const derivedKey = Security.#AES_TYPE;
+        const derivedKey = QuarkSecurity.#AES_TYPE;
         const dbg = false; // globalThis.QUARK_DEBUG === true;
         return crypto.subtle.deriveKey(pubDef, priv, derivedKey, dbg, use);
     }
 
     #toAlgo(iv) {
-        iv = Buffer.toBuffer(iv);
-        const type = Object.assign({ counter: iv }, Security.#AES_TYPE);
+        iv = QuarkBuffer.toBuffer(iv);
+        const type = Object.assign({ counter: iv }, QuarkSecurity.#AES_TYPE);
         type.length = 128;
         return type;
     }
@@ -155,7 +155,7 @@ export default class Security {
      * @param {ArrayBuffer} data as Hex string 
      */
     async encryptRaw(key, iv, data) {
-        const databin = Buffer.toBuffer(data);
+        const databin = QuarkBuffer.toBuffer(data);
         const type = this.#toAlgo(iv);
         return crypto.subtle.encrypt(type, key, databin);
     }
@@ -167,29 +167,29 @@ export default class Security {
      * @param {ArrayBuffer} data as Hex string 
      */
     async decryptRaw(key, iv, data) {
-        const databin = Buffer.toBuffer(data);
+        const databin = QuarkBuffer.toBuffer(data);
         const type = this.#toAlgo(iv);
         return crypto.subtle.decrypt(type, key, databin);
     }
 
     async decryptAsBuffer(key, iv, data) {
         const result = await this.decryptRaw(key, iv, data);
-        return Buffer.toBuffer(result);
+        return QuarkBuffer.toBuffer(result);
     }
 
     async encryptAsBuffer(key, iv, data) {
         const result = await this.encryptRaw(key, iv, data);
-        return Buffer.toBuffer(result);
+        return QuarkBuffer.toBuffer(result);
     }
 
     async decryptAsString(key, iv, data) {
         const result = await this.decryptRaw(key, iv, data);
-        return Buffer.toText(result);
+        return QuarkBuffer.toText(result);
     }
 
     async encryptAsHex(key, iv, data) {
         const result = await this.encryptRaw(key, iv, data);
-        return Buffer.toHex(result);
+        return QuarkBuffer.toHex(result);
     }
 
     get isValid() {
@@ -207,7 +207,7 @@ export default class Security {
      */
     async init(cfg) {
 
-        if (!Security.isAvailable) {
+        if (!QuarkSecurity.isAvailable) {
             console.log('Security mode not available, TLS protocol required.');
             return;
         }
@@ -234,7 +234,7 @@ export default class Security {
         const me = this;
         if (!me.isValid) return data;
         if (!data instanceof Uint8Array) return data;
-        const iv = Security.getRandom(16);
+        const iv = QuarkSecurity.getRandom(16);
         const d = await me.encryptAsBuffer(me.#aesKey, iv, data);
 
         const raw = new Uint8Array(iv.length + d.length);
@@ -264,12 +264,12 @@ export default class Security {
 
     async #preInit() {
         const me = this;
-        me.#keyPair = await Security.initKeyPair();
-        me.#publicKey = await Security.exportKey(me.#keyPair.publicKey);
+        me.#keyPair = await QuarkSecurity.initKeyPair();
+        me.#publicKey = await QuarkSecurity.exportKey(me.#keyPair.publicKey);
     }
 
     static async create(cfg) {
-        const security = new Security();
+        const security = new QuarkSecurity();
         await security.#preInit();
         if (cfg) await security.init(cfg);
         return security;

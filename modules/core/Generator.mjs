@@ -10,7 +10,7 @@ import Request from "./Request.mjs";
  * Used to call remote services.
  * All Direct functions linked to defiend namespace
  */
-export default class Generator extends QuarkEvent {
+export default class QuarkGenerator extends QuarkEvent {
 
 	#model = {};
 	#id = null;
@@ -221,7 +221,7 @@ export default class Generator extends QuarkEvent {
 			const len = isOverride ? prop.l.filter(v => v === args.length).pop() : prop.l;
 			if (args.length != len) throw new Error(`Invalid arguments length. Required (${prop.l})`);
 
-			const handle = Array.isArray(prop.x) ? prop.x[len-1] : prop.x;
+			const handle = Array.isArray(prop.x) ? prop.x[len - 1] : prop.x;
 			const isAsync = isOverride ? prop.a[args.length] : prop.a;
 			const timeout = isAsync ? 0 : me.#timeout;
 
@@ -275,7 +275,7 @@ export default class Generator extends QuarkEvent {
 	 * @returns 
 	 */
 	static build(cfg, id, timeout) {
-		const generator = new Generator(id, timeout);
+		const generator = new QuarkGenerator(id, timeout);
 		generator.build(cfg);
 		return generator;
 	}

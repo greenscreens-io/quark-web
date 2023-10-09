@@ -2,10 +2,10 @@
  * Copyright (C) 2015, 2022 Green Screens Ltd.
  */
 
-import Generator from "./Generator.mjs";
-import Security from "./Security.mjs";
-import SocketChannel from "./SocketChannel.mjs";
-import WebChannel from "./WebChannel.mjs";
+import QuarkGenerator from "./Generator.mjs";
+import QuarkSecurity from "./Security.mjs";
+import QuarkSocketChannel from "./SocketChannel.mjs";
+import QuarkWebChannel from "./WebChannel.mjs";
 
 /**
  * Web and WebSocket API engine
@@ -66,7 +66,7 @@ export default class QuarkEngine {
 		me.#headers = cfg.headers || {};
 		me.#querys = cfg.querys || {};
 
-		me.#Security = cfg.security instanceof Security ? cfg.security : null;
+		me.#Security = cfg.security instanceof QuarkSecurity ? cfg.security : null;
 		me.#isWebChannel = cfg.service.indexOf('http') === 0;
 		me.#isSocketChannel = cfg.service.indexOf('ws') === 0;
 
@@ -84,16 +84,16 @@ export default class QuarkEngine {
 		const me = this;
 		if (me.isActive) return;
 
-		if (!me.#Security) me.#Security = await Security.create();
-		me.#Generator = new Generator(me.id);
+		if (!me.#Security) me.#Security = await QuarkSecurity.create();
+		me.#Generator = new QuarkGenerator(me.id);
 
 		if (me.isWebChannel || me.isWSAPI == false) {
-			me.#WebChannel = new WebChannel();
+			me.#WebChannel = new QuarkWebChannel();
 			await me.WebChannel.init(me);
 		}
 
 		if (me.isSocketChannel) {
-			me.#SocketChannel = new SocketChannel();
+			me.#SocketChannel = new QuarkSocketChannel();
 			await me.SocketChannel.init(me);
 		}
 

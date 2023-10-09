@@ -3,18 +3,18 @@
  */
 
 import QuarkEvent from "./Event.mjs";
-import Queue from "./Queue.mjs";
-import Streams from "./Streams.mjs";
+import QuarkQueue from "./Queue.mjs";
+import QuarkStreams from "./Streams.mjs";
 
 /**
  * Web and WebSocket API engine
  * Used to call remote services.
  * All Direct functions linked to io.greenscreens namespace
  */
-export default class SocketChannel extends QuarkEvent {
+export default class QuarkSocketChannel extends QuarkEvent {
 
 	#challenge = Date.now();
-	#queue = new Queue();
+	#queue = new QuarkQueue();
 	#webSocket = null;
 	#engine = null;
 	#iid = 0;
@@ -89,7 +89,7 @@ export default class SocketChannel extends QuarkEvent {
 		me.#queue.updateRequest(req);
 
 		const msg = me.#wrap('data', req);
-		const raw = await Streams.wrap(msg, me.#engine.Security);
+		const raw = await QuarkStreams.wrap(msg, me.#engine.Security);
 		me.#webSocket.send(raw);
 	}
 
@@ -104,7 +104,7 @@ export default class SocketChannel extends QuarkEvent {
 		// const headers = Object.assign({}, engine.headers || {});
 		const querys = Object.assign({}, engine.querys || {});
 		querys.q = me.#challenge;
-		querys.c = Streams.isAvailable;
+		querys.c = QuarkStreams.isAvailable;
 
 		Object.entries(querys || {}).forEach((v) => {
 			if (v[1]) url.searchParams.append(v[0], encodeURIComponent(v[1]));
@@ -184,9 +184,9 @@ export default class SocketChannel extends QuarkEvent {
 		const engine = me.#engine;
 		const security = engine.Security;
 
-		message = await Streams.unwrap(message, security, me.#challenge);
+		message = await QuarkStreams.unwrap(message, security, me.#challenge);
 
-		const isJSON = Streams.isJson(message);
+		const isJSON = QuarkStreams.isJson(message);
 		if (!isJSON) return generator.emit('raw', message);
 
 		if (Array.isArray(message)) {
@@ -209,7 +209,7 @@ export default class SocketChannel extends QuarkEvent {
 		const generator = engine.Generator;
 
 		try {
-			const isJSON = Streams.isJson(message);
+			const isJSON = QuarkStreams.isJson(message);
 
 			if (!isJSON) return generator.emit('raw', message);
 
