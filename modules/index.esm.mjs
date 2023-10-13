@@ -1,10 +1,10 @@
 export { default as QuarkBuffer } from './core/Buffer.mjs';
 export { default as QuarkEvent } from './core/Event.mjs';
-export { default as Streams } from './core/Streams.mjs';
-export { default as Security } from './core/Security.mjs';
-export { default as Queue } from './core/Queue.mjs';
-export { default as Request } from './core/Request.mjs';
-export { default as Generator } from './core/Generator.mjs';
-export { default as SocketChannel } from './core/SocketChannel.mjs';
-export { default as WebChannel } from './core/WebChannel.mjs';
+export { default as QuarkStreams } from './core/Streams.mjs';
+export { default as QuarkSecurity } from './core/Security.mjs';
+export { default as QuarkQueue } from './core/Queue.mjs';
+export { default as QuarkRequest } from './core/Request.mjs';
+export { default as QuarkGenerator } from './core/Generator.mjs';
+export { default as QuarkSocketChannel } from './core/SocketChannel.mjs';
+export { default as QuarkWebChannel } from './core/WebChannel.mjs';
 export { default as QuarkEngine } from './core/QuarkEngine.mjs';
