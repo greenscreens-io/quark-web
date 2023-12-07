@@ -207,6 +207,10 @@ export default class QuarkSecurity {
         return me.#publicKey !== null && me.#aesKey !== null;
     }
 
+    get isSecure() {
+		return ['https:', 'wss:'].indexOf(location.protocol) > -1;
+	}
+    
     static get isAvailable() {
         return crypto.subtle ? true : false;
     }
