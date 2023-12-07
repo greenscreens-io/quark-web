@@ -6,8 +6,15 @@
  * Custom Error to handle reponse structure
  */
 export default class QuarkError extends Error {
-    constructor(data) {
-       super(data.message || data.msg || data.error || data);
+    
+    constructor(msg, data) {
+       super(msg);
        this.data = data;
     }
+    
+    static create(data) {
+		let msg = data.message || data.msg || data.error || '';
+		if (data.code && msg.indexOf(data.code) < 0) msg = `${data.code} : ${msg}`;
+		return new QuarkError(msg, data);
+	}
 }

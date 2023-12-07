@@ -264,7 +264,7 @@ export default class QuarkGenerator extends QuarkEvent {
 		if (result.success) {
 			resolve(result);
 		} else {
-			reject(new QuarkError(result));
+			reject(QuarkError.create(result));
 		}
 
 	}
