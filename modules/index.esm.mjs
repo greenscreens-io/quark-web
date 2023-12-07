@@ -1,3 +1,4 @@
+export { default as QuarkError } from './core/Error.mjs';
 export { default as QuarkBuffer } from './core/Buffer.mjs';
 export { default as QuarkEvent } from './core/Event.mjs';
 export { default as QuarkStreams } from './core/Streams.mjs';

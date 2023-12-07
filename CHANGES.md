@@ -3,6 +3,9 @@
 
 ## v6.0.0. (2023.Q4)
  - API format definition change
+ - Cookie SameSite attribute; 
+ - QuarkError added to handle API format
+ - improved error event handling
 
 ## v5.0.0. (2023.Q3)
  - Switch to binary transfer mode 

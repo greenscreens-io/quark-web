@@ -16,6 +16,7 @@ export default class QuarkSecurity {
     static #ECDSA_TYPE = { name: 'ECDSA', namedCurve: "P-384" };
     static #VERIFY = { name: 'ECDSA', hash: "SHA-384" };
     static #AES_TYPE = { name: "AES-CTR", length: 256 };
+    static #COOKIE_KEY = 'gs-public-key';
 
     #publicKey = null;
     #keyPair = null;
@@ -91,12 +92,21 @@ export default class QuarkSecurity {
 
     get publicKey() { return this.#publicKey; }
 
+    setCookie(name, value) {
+		const cookie = this.isSecure ? '; SameSite=None; Secure' : '; SameSite=Lax';
+		document.cookie = `${name}=${value}${cookie}`;		
+	}
+	
     cookie(path = "/") {
-        return `gs-public-key=${this.#publicKey || ''};path=${path}`;
+        return `${QuarkSecurity.#COOKIE_KEY}=${this.cookieValue(path)}`;
     }
 
+    cookieValue(path = "/") {
+        return `${this.#publicKey||''};path=${path}`;
+    }
+    
     updateCookie(path = "/") {
-        document.cookie = this.cookie(path);
+		this.setCookie(QuarkSecurity.#COOKIE_KEY, this.cookieValue(path));
     }
 
     /**

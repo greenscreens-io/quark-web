@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2015, 2022 Green Screens Ltd.
+ * Copyright (C) 2015, 2024 Green Screens Ltd.
  */
 
 import QuarkEvent from "./Event.mjs";
 import Request from "./Request.mjs";
+import QuarkError from './Error.mjs';
 
 /**
  * Web and WebSocket API engine
@@ -263,7 +264,7 @@ export default class QuarkGenerator extends QuarkEvent {
 		if (result.success) {
 			resolve(result);
 		} else {
-			reject(result);
+			reject(new QuarkError(result));
 		}
 
 	}
