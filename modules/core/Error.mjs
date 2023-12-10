@@ -9,7 +9,13 @@ export default class QuarkError extends Error {
     
     constructor(msg, data) {
        super(msg);
-       this.data = data;
+       const me = this;
+       me.name = me.constructor.name;
+       me.message = msg;       
+       me.data = data;
+       if (Error.captureStackTrace) {
+         Error.captureStackTrace(me, me.constructor);
+       }       
     }
     
     static create(data) {
