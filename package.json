@@ -22,5 +22,8 @@
   "devDependencies": {
     "rollup-plugin-sourcemaps": "^0.6.3",
     "rollup-plugin-terser": "^7.0.2"
+  },
+  "dependencies": {
+    "quark-engine": "file:"
   }
 }
