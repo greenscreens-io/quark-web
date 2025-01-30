@@ -220,7 +220,6 @@ export default class QuarkSecurity {
      * Verifies data signatures to prevent tampering
      */
     async init(cfg) {
-
         if (!QuarkSecurity.isAvailable) {
             console.log('Security mode not available, TLS protocol required.');
             return;
@@ -229,14 +228,16 @@ export default class QuarkSecurity {
         console.log('Security Initializing...');
         const me = this;
 
-        await me.#initVerify(cfg);
-
-        const publicKey = await me.#initPublic(cfg);
-        me.#aesKey = await me.#deriveAES(me.#keyPair.privateKey, publicKey);
-        me.#keyPair = null;
-
-        console.log('Security Initialized!');
-
+        try {
+            await me.#initVerify(cfg);
+            const publicKey = await me.#initPublic(cfg);
+            me.#aesKey = await me.#deriveAES(me.#keyPair.privateKey, publicKey);
+            me.#keyPair = null;
+            console.log('Security Initialized!');
+        } catch (error) {
+            console.error('Security initialization failed:', error);
+            throw error;
+        }
     }
 
     /**

@@ -84,17 +84,22 @@ export default class QuarkEngine {
 		const me = this;
 		if (me.isActive) return;
 
-		if (!me.#Security) me.#Security = await QuarkSecurity.create();
-		me.#Generator = new QuarkGenerator(me.id);
+		try {
+			if (!me.#Security) me.#Security = await QuarkSecurity.create();
+			me.#Generator = new QuarkGenerator(me.id);
 
-		if (me.isWebChannel || me.isWSAPI == false) {
-			me.#WebChannel = new QuarkWebChannel();
-			await me.WebChannel.init(me);
-		}
+			if (me.isWebChannel || me.isWSAPI == false) {
+				me.#WebChannel = new QuarkWebChannel();
+				await me.WebChannel.init(me);
+			}
 
-		if (me.isSocketChannel) {
-			me.#SocketChannel = new QuarkSocketChannel();
-			await me.SocketChannel.init(me);
+			if (me.isSocketChannel) {
+				me.#SocketChannel = new QuarkSocketChannel();
+				await me.SocketChannel.init(me);
+			}
+		} catch (error) {
+			console.error('Engine initialization failed:', error);
+			throw error;
 		}
 
 		return me;

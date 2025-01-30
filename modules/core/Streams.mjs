@@ -163,8 +163,13 @@ export default class QuarkStreams {
 	static async compressOrDefault(data, encoding = 'gzip') {
 		const me = QuarkStreams;
 		if (!me.isAvailable) return data;
-		const raw = await me.compress(data, encoding).arrayBuffer();
-		return me.toBinary(raw);
+		try {
+			const raw = await me.compress(data, encoding).arrayBuffer();
+			return me.toBinary(raw);
+		} catch (error) {
+			console.error('Compression failed:', error);
+			throw error;
+		}
 	}
 
 	/**
@@ -176,8 +181,13 @@ export default class QuarkStreams {
 	static async decompressOrDefault(data, encoding = 'gzip') {
 		const me = QuarkStreams;
 		if (!me.isAvailable) return data;
-		const raw = await me.decompress(data, encoding).arrayBuffer();
-		return me.toBinary(raw);
+		try {
+			const raw = await me.decompress(data, encoding).arrayBuffer();
+			return me.toBinary(raw);
+		} catch (error) {
+			console.error('Decompression failed:', error);
+			throw error;
+		}
 	}
 
 	/**

@@ -66,7 +66,6 @@ export default class QuarkQueue extends Map {
 	 * @param {Object} obj
 	 */
 	execute(obj) {
-
 		const me = this;
 		const tid = obj.tid;
 		let unknown = null;

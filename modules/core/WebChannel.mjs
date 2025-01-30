@@ -151,7 +151,12 @@ export default class QuarkWebChannel {
 			service.searchParams.append(v[0], encodeURIComponent(v[1]));
 		});
 
-		return await fetch(service.toString(), req);
+		try {
+			return await fetch(service.toString(), req);
+		} catch (error) {
+			console.error('Fetch call failed:', error);
+			throw error;
+		}
 
 	}
 

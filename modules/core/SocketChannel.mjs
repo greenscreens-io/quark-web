@@ -184,15 +184,19 @@ export default class QuarkSocketChannel extends QuarkEvent {
 		const engine = me.#engine;
 		const security = engine.Security;
 
-		message = await QuarkStreams.unwrap(message, security, me.#challenge);
+		try {
+			message = await QuarkStreams.unwrap(message, security, me.#challenge);
+			const isJSON = QuarkStreams.isJson(message);
+			if (!isJSON) return generator.emit('raw', message);
 
-		const isJSON = QuarkStreams.isJson(message);
-		if (!isJSON) return generator.emit('raw', message);
-
-		if (Array.isArray(message)) {
-			message.forEach(m => me.#onMessage(m));
-		} else {
-			me.#onMessage(message);
+			if (Array.isArray(message)) {
+				message.forEach(m => me.#onMessage(m));
+			} else {
+				me.#onMessage(message);
+			}
+		} catch (error) {
+			console.error('Failed to prepare binary message:', error);
+			throw error;
 		}
 	}
 
@@ -210,7 +214,6 @@ export default class QuarkSocketChannel extends QuarkEvent {
 
 		try {
 			const isJSON = QuarkStreams.isJson(message);
-
 			if (!isJSON) return generator.emit('raw', message);
 
 			message = JSON.parse(message);
@@ -220,8 +223,9 @@ export default class QuarkSocketChannel extends QuarkEvent {
 				me.#onMessage(message);
 			}
 
-		} catch (e) {
-			generator.emit('error', e);
+		} catch (error) {
+			console.error('Failed to prepare text message:', error);
+			throw error;
 		}
 
 	}

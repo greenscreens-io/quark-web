@@ -47,7 +47,11 @@ export default class QuarkRequest {
         if (me.#timeout === 0) return;
         me.#id = setTimeout(() => {
             me.#timeout = true;
-            me.#callback(new Error('Call timeouted!'));
+            try {
+                me.#callback(new Error('Call timeouted!'));
+            } catch (error) {
+                console.error('Callback execution failed:', error);
+            }
         }, me.#timeout);
     }
 
