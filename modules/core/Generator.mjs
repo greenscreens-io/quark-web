@@ -25,7 +25,7 @@ export default class QuarkGenerator extends QuarkEvent {
 	}
 
 	/**
-	 * Return generted API structure and callers
+	 * Return generated API structure and callers
 	 */
 	get api() {
 		return this.#model;

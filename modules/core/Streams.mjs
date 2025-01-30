@@ -22,7 +22,7 @@ export default class QuarkStreams {
 	 * @returns {Uint8Array}
 	 */
 	static #toGS(raw, encrypted = false, compressed = false) {
-		if (!raw instanceof Uint8Array) return raw;
+		if (!(raw instanceof Uint8Array)) return raw;
 		const type = QuarkStreams.#dataType(encrypted, compressed);
 
 		const data = new Uint8Array(8 + raw.length);
@@ -42,10 +42,11 @@ export default class QuarkStreams {
 	 * @param {*} security 
 	 */
 	static async wrap(raw, security) {
-		raw = QuarkStreams.toBinary(raw);
-		raw = await QuarkStreams.compressOrDefault(raw);
+		const me = QuarkStreams;
+		raw = me.toBinary(raw);
+		raw = await me.compressOrDefault(raw);
 		raw = await security.encrypt(raw);
-		raw = QuarkStreams.#toGS(raw, security.isValid, QuarkStreams.isAvailable);
+		raw = me.#toGS(raw, security.isValid, me.isAvailable);
 		/*
 		if (globalThis.QUARK_DEBUG) {
 			console.log('DEBUG: Output :', QuarkBuffer.toHex(raw));
@@ -68,10 +69,11 @@ export default class QuarkStreams {
 			console.log('DEBUG: Input :', QuarkBuffer.toHex(raw));
 		}
 		*/
+		const me = QuarkStreams;
 		const dv = new DataView(raw);
-		const isGS = QuarkStreams.#isGS(dv);
+		const isGS = me.#isGS(dv);
 
-		raw = Streams.toBinary(raw);
+		raw = me.toBinary(raw);
 		if (!isGS) return raw;
 
 		const type = dv.getUint8(3);
@@ -81,9 +83,9 @@ export default class QuarkStreams {
 
 		raw = raw.slice(8);
 
-		const isCompress = QuarkStreams.isCompressFlag(type);
-		const isEncrypt = QuarkStreams.isEncryptFlag(type);
-		const isApi = QuarkStreams.isApiFlag(type);
+		const isCompress = me.isCompressFlag(type);
+		const isEncrypt = me.isEncryptFlag(type);
+		const isApi = me.isApiFlag(type);
 
 		let api = null;
 		if (isApi) {
@@ -108,11 +110,11 @@ export default class QuarkStreams {
 		}
 
 		if (isCompress) {
-			raw = await QuarkStreams.decompress(raw).arrayBuffer();
+			raw = await me.decompress(raw).arrayBuffer();
 		}
 
-		raw = QuarkStreams.toBinary(raw);
-		if (!QuarkStreams.isJson(raw)) throw new Error('Invalid response');
+		raw = me.toBinary(raw);
+		if (!me.isJson(raw)) throw new Error('Invalid response');
 
 		return JSON.parse(QuarkBuffer.toText(raw));
 	}
@@ -144,7 +146,7 @@ export default class QuarkStreams {
 	}
 
 	static #stream(data, stream) {
-		const me = this;
+		const me = QuarkStreams;
 		const byteArray = me.toBinary(data);
 		const writer = stream.writable.getWriter();
 		writer.write(byteArray);
@@ -159,9 +161,10 @@ export default class QuarkStreams {
 	 * @param {*} encoding 
 	 */
 	static async compressOrDefault(data, encoding = 'gzip') {
-		if (!QuarkStreams.isAvailable) return data;
-		const raw = await QuarkStreams.compress(data, encoding).arrayBuffer();
-		return Streams.toBinary(raw);
+		const me = QuarkStreams;
+		if (!me.isAvailable) return data;
+		const raw = await me.compress(data, encoding).arrayBuffer();
+		return me.toBinary(raw);
 	}
 
 	/**
@@ -171,9 +174,10 @@ export default class QuarkStreams {
 	 * @param {*} encoding 
 	 */
 	static async decompressOrDefault(data, encoding = 'gzip') {
-		if (!QuarkStreams.isAvailable) return data;
-		const raw = await QuarkStreams.decompress(data, encoding).arrayBuffer();
-		return QuarkStreams.toBinary(raw);
+		const me = QuarkStreams;
+		if (!me.isAvailable) return data;
+		const raw = await me.decompress(data, encoding).arrayBuffer();
+		return me.toBinary(raw);
 	}
 
 	/**
@@ -184,7 +188,7 @@ export default class QuarkStreams {
 	 */
 	static compress(data, encoding = 'gzip') {
 		const stream = new CompressionStream(encoding);
-		return this.#stream(data, stream);
+		return QuarkStreams.#stream(data, stream);
 	}
 
 	/**
@@ -195,14 +199,14 @@ export default class QuarkStreams {
 	 */
 	static decompress(data, encoding = 'gzip') {
 		const stream = new DecompressionStream(encoding);
-		return this.#stream(data, stream);
+		return QuarkStreams.#stream(data, stream);
 	}
 
 	static toBinary(data) {
 		if (data instanceof Uint8Array) return data;
 		if (data instanceof ArrayBuffer) return new Uint8Array(data);
 		if (typeof data === 'string') return QuarkBuffer.fromText(data);
-		return this.toBinary(JSON.stringify(data));
+		return QuarkStreams.toBinary(JSON.stringify(data));
 	}
 
 	/**
@@ -210,7 +214,7 @@ export default class QuarkStreams {
 	 * @param {ArrayBuffer|Uint8Array} data 
 	 */
 	static isCompressed(data) {
-		const me = this;
+		const me = QuarkStreams;
 		data = me.toBinary(data);
 		return me.isGzip(data); // || me.isZlib(data);
 	}
@@ -241,7 +245,7 @@ export default class QuarkStreams {
 	}
 
 	static isJson(data) {
-		const me = this;
+		const me = QuarkStreams;
 		data = typeof data === 'string' ? data.trim() : me.toBinary(data);
 		const first = data.at(0);
 		const last = data.at(data.length - 1);

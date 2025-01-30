@@ -247,7 +247,7 @@ export default class QuarkSecurity {
     async encrypt(data) {
         const me = this;
         if (!me.isValid) return data;
-        if (!data instanceof Uint8Array) return data;
+        if (!(data instanceof Uint8Array)) return data;
         const iv = QuarkSecurity.getRandom(16);
         const d = await me.encryptAsBuffer(me.#aesKey, iv, data);
 
